@@ -22,7 +22,7 @@ export default $config({
     await import("./infra/secrets");
     await import("./infra/auth");
     await import("./infra/storage");
-    await import("./infra/jobs");   // optional — gated by ENABLE_ASYNC_JOBS in root .env
+   // await import("./infra/jobs");   // optional — gated by ENABLE_ASYNC_JOBS in root .env
     const { web } = await import("./infra/web");
 
     return {

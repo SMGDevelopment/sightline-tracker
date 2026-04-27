@@ -14,7 +14,7 @@
 
 import { userPoolId, userPoolClient } from "./auth";
 import { table } from "./storage";
-import { queue, websocket } from "./jobs";
+//import { queue, websocket } from "./jobs";
 // import { exampleApiKey } from "./secrets";  // uncomment when adding secrets
 
 // ADOT Lambda layer — runs the OTel Collector as a Lambda extension.
@@ -31,8 +31,8 @@ export const web = new sst.aws.Nextjs("Web", {
   // Example: link: [table, exampleApiKey]
   link: [
     table,
-    ...(queue ? [queue] : []),
-    ...(websocket ? [websocket] : []),
+ //   ...(queue ? [queue] : []),
+  //  ...(websocket ? [websocket] : []),
   ],
 
   server: {
@@ -48,7 +48,7 @@ export const web = new sst.aws.Nextjs("Web", {
     // Format (without https://): <prefix>.auth.<region>.amazoncognito.com
     NEXT_PUBLIC_COGNITO_DOMAIN: process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "",
     // Injected automatically when ENABLE_ASYNC_JOBS=true — used by useJobNotifications().
-    ...(websocket ? { NEXT_PUBLIC_WS_URL: websocket.url } : {}),
+   // ...(websocket ? { NEXT_PUBLIC_WS_URL: websocket.url } : {}),
 
     // Powertools — read by app/lib/powertools.ts
     POWERTOOLS_SERVICE_NAME: $interpolate`${$app.name}-${$app.stage}`,
@@ -95,7 +95,7 @@ export const web = new sst.aws.Nextjs("Web", {
   // Production uses a fixed domain. Other stages can optionally set DEPLOY_DOMAIN.
   // Requires a Route 53 hosted zone for militarytimes.com in the AWS account.
   ...($app.stage === "production"
-    ? { domain: { name: "vibe-demo.militarytimes.com", dns: sst.aws.dns() } }
+    ? { domain: { name: "sl-tracker.militarytimes.com", dns: sst.aws.dns() } }
     : process.env.DEPLOY_DOMAIN
       ? { domain: { name: process.env.DEPLOY_DOMAIN, dns: sst.aws.dns() } }
       : {}),

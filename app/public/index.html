@@ -1,0 +1,4682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sightline Campaign Tracker</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Monochrome scale */
+    --ink:       #0E0E10;
+    --graphite:  #2A2A2E;
+    --slate:     #55555B;
+    --mist:      #8A8A90;
+    --fog:       #B8B8BD;
+    --silver:    #D8D8DC;
+    --pearl:     #EDEDEF;
+    --snow:      #F6F6F7;
+    --paper:     #FCFCFC;
+    --white:     #FFFFFF;
+
+    /* Single accent — cool graphite-blue */
+    --accent:       #3563E9;
+    --accent-soft:  #E8EFFD;
+    --accent-hover: #2449B8;
+
+    /* Status hues — muted, single-weight */
+    --st-new:        #E55722;
+    --st-upcoming:   #8A6FC4;
+    --st-ready:      #C7952F;
+    --st-delivering: #2F8F5E;
+    --st-paused:     #B8542E;
+    --st-completed:  #6B7280;
+    --st-cancelled:  #9B4444;
+
+    --st-new-bg:        #FFEDE4;
+    --st-upcoming-bg:   #F2EDF8;
+    --st-ready-bg:      #FAF3E2;
+    --st-delivering-bg: #E8F3ED;
+    --st-paused-bg:     #F8ECE4;
+    --st-completed-bg:  #EFF0F2;
+    --st-cancelled-bg:  #F2E4E4;
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+    --radius-sm: 4px;
+    --radius:    8px;
+    --radius-lg: 12px;
+
+    --shadow-xs: 0 1px 2px rgba(14,14,16,0.04);
+    --shadow-sm: 0 1px 3px rgba(14,14,16,0.05), 0 1px 2px rgba(14,14,16,0.03);
+    --shadow-md: 0 4px 12px rgba(14,14,16,0.06), 0 2px 4px rgba(14,14,16,0.04);
+    --shadow-lg: 0 12px 32px rgba(14,14,16,0.08), 0 4px 12px rgba(14,14,16,0.05);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-feature-settings: "ss01", "cv11";
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection { background: var(--ink); color: var(--white); }
+
+  /* ═══ HEADER ═══ */
+  header {
+    background: var(--white);
+    border-bottom: 1px solid var(--pearl);
+    padding: 32px 56px 24px;
+    position: relative;
+  }
+  .header-inner {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    width: 100%;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .brand-logo-link {
+    display: inline-block;
+    line-height: 0;
+    text-decoration: none;
+    color: var(--ink); /* SVG paths use currentColor */
+  }
+  .brand-logo {
+    height: 38px;
+    width: auto;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  @media (max-width: 900px) {
+    .brand-logo { height: 32px; }
+  }
+  /* Kept for legacy references (setup panel, etc.) but no longer used in the header */
+  .brand-mark { display: none; }
+  .brand-icon { display: none; }
+
+  .brand-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--mist);
+    margin-top: 0;
+  }
+  .brand-title {
+    /* Kept in CSS in case any other reference uses it, but header no longer does */
+    font-family: var(--font-display);
+    font-size: clamp(32px, 3.5vw, 44px);
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .brand-title em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--slate);
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 36px;
+    align-items: flex-end;
+    justify-content: flex-end;
+    text-align: right;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: right;
+  }
+  .stat .num {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 500;
+    font-variation-settings: "opsz" 144;
+    color: var(--ink);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .stat .lbl {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mist);
+    margin-top: 4px;
+  }
+
+  /* ═══ AUTH BAR ═══ */
+  .auth-bar {
+    background: var(--snow);
+    border-bottom: 1px solid var(--pearl);
+    padding: 10px 56px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .auth-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--slate);
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .auth-status::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--fog);
+    transition: background 0.3s;
+  }
+  .auth-status.signed-in::before { background: #2F8F5E; }
+  .auth-status.error::before     { background: #C4521A; }
+  .auth-status.signed-in { color: var(--graphite); }
+  .auth-status.error     { color: #C4521A; }
+
+  .btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    background: none;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: var(--white);
+    border-color: var(--ink);
+  }
+  .btn-primary:hover { background: var(--graphite); border-color: var(--graphite); }
+  .btn-ghost {
+    color: var(--slate);
+    border-color: var(--silver);
+  }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--slate); background: var(--white); }
+  .btn-accent {
+    background: var(--accent);
+    color: var(--white);
+    border-color: var(--accent);
+  }
+  .btn-accent:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+  .sync-pill {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--mist);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sync-pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #2F8F5E;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.35; transform: scale(0.7); }
+  }
+
+  .save-indicator {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .save-indicator.saving { background: #FFF6E0; color: #946700; opacity: 1; }
+  .save-indicator.saved  { background: #E6F4EA; color: #1F6E44; opacity: 1; }
+  .save-indicator.error  { background: #FBE9E3; color: #9C2A0C; opacity: 1; }
+
+  /* ═══ TABS ═══ */
+  .tab-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--pearl);
+    padding: 0 56px;
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mist);
+    padding: 16px 18px 14px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -0.005em;
+  }
+  .tab-btn:hover { color: var(--graphite); }
+  .tab-btn.active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+  .tab-btn .indicator {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tab-btn .count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--mist);
+    font-weight: 400;
+    padding: 1px 7px;
+    background: var(--snow);
+    border-radius: 10px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab-btn.active .count {
+    background: var(--ink);
+    color: var(--white);
+  }
+  .tab-btn .new-count {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--white);
+    background: var(--st-new);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+    margin-left: 2px;
+    animation: pulse-gentle 2.4s ease-in-out infinite;
+  }
+  /* V2.1: @mention count on each tab label */
+  .tab-btn .tab-mention-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.02em;
+    color: var(--white);
+    background: var(--accent);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 4px;
+    animation: pulse-gentle 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse-gentle {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.65; }
+  }
+
+  /* ═══ CONTROLS ═══ */
+  .controls {
+    background: var(--white);
+    border-bottom: 1px solid var(--pearl);
+    padding: 14px 56px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 340px;
+  }
+  .search-wrap svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--mist);
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    border: 1px solid var(--silver);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .search-input::placeholder { color: var(--fog); }
+  .search-input:focus {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px var(--pearl);
+  }
+
+  .filter-select {
+    padding: 9px 32px 9px 12px;
+    border: 1px solid var(--silver);
+    border-radius: var(--radius-sm);
+    background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2355555B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color 0.15s;
+  }
+  .filter-select:focus { border-color: var(--ink); }
+  .filter-select:hover { border-color: var(--slate); }
+
+  /* Filter wrapper — allows an × clear button to overlay the select */
+  .filter-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+  .filter-wrap.active .filter-select {
+    border-color: var(--ink);
+    background-color: var(--snow);
+    font-weight: 500;
+    padding-right: 36px;  /* make room for × button */
+    /* hide the chevron when active (× replaces it visually) */
+    background-image: none;
+  }
+  .filter-clear {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--slate);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.12s, color 0.12s;
+  }
+  .filter-wrap.active .filter-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .filter-clear:hover {
+    background: var(--ink);
+    color: var(--white);
+  }
+
+  /* "Clear all" global link — appears only when any filter/search is active */
+  .clear-all-link {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--slate);
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-bottom: 1px dashed var(--fog);
+    transition: color 0.15s, border-color 0.15s;
+    align-self: center;
+  }
+  .clear-all-link:hover {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+
+  .controls-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .result-count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--mist);
+    text-transform: uppercase;
+  }
+
+  /* ═══ FLOAT-TO-TOP BUTTONS (Upcoming tab) ═══ */
+  .btn-float {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--silver);
+    background: var(--white);
+    color: var(--slate);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-float:hover {
+    border-color: var(--slate);
+    color: var(--ink);
+  }
+  .btn-float .float-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .btn-float[data-active="true"][data-key="new"] {
+    background: var(--st-new-bg);
+    border-color: var(--st-new);
+    color: #8C2D0A;
+  }
+  .btn-float[data-active="true"][data-key="overdue"] {
+    background: #FBE9E3;
+    border-color: #C4521A;
+    color: #9C2A0C;
+  }
+  .btn-float[data-active="true"][data-key="soon"] {
+    background: #FFF6E0;
+    border-color: #C7952F;
+    color: #7A5500;
+  }
+  /* V2.1: @me-mention button + count badge */
+  .btn-float[data-active="true"][data-key="mentions"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-hover);
+  }
+  .mentions-count {
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--accent);
+    color: var(--white);
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    letter-spacing: 0.04em;
+    animation: pulse-gentle 2.4s ease-in-out infinite;
+  }
+  .mentions-count.visible { display: inline-flex; align-items: center; }
+
+  /* ═══ MAIN ═══ */
+  main {
+    padding: 28px 40px 56px;
+    max-width: 100%;
+  }
+
+  .tab-panel { animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ═══ SECTION HEADER ═══ */
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--pearl);
+  }
+  .section-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .section-title em { font-style: italic; color: var(--slate); font-weight: 300; }
+  .section-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mist);
+  }
+
+  /* ═══ TABLE ═══ */
+  .table-wrap {
+    border: 1px solid var(--pearl);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .table-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 360px);
+    min-height: 320px;
+  }
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    min-width: 1400px;
+  }
+  thead tr {
+    background: var(--snow);
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--snow);
+    border-bottom: 1px solid var(--pearl);
+    box-shadow: 0 1px 0 var(--pearl);
+  }
+  th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--slate);
+    padding: 13px 16px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+    font-weight: 500;
+  }
+  th:hover { color: var(--ink); }
+  th.no-sort { cursor: default; }
+  th.no-sort:hover { color: var(--slate); }
+  th .sort-arrow {
+    margin-left: 4px;
+    opacity: 0.35;
+    font-size: 9px;
+    transition: opacity 0.15s;
+  }
+  th.sorted .sort-arrow { opacity: 1; color: var(--ink); }
+
+  tbody tr {
+    transition: background 0.1s;
+  }
+  tbody tr td {
+    border-bottom: 1px solid var(--pearl);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--snow); }
+
+  td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    max-width: 280px;
+    background: var(--white);
+  }
+
+  /* Cell styles */
+  td.date-cell {
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--graphite);
+  }
+  td.id-cell {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--mist);
+    white-space: nowrap;
+  }
+  td.advertiser-cell {
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  td.name-cell {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--graphite);
+    font-size: 13px;
+  }
+  td.person-cell {
+    color: var(--slate);
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  /* ═══ STATUS PILL ═══ */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 0.1s;
+    user-select: none;
+  }
+  .status-pill:hover { transform: translateY(-1px); }
+  .status-pill::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-pill .edit-hint {
+    opacity: 0;
+    font-size: 9px;
+    margin-left: 2px;
+    transition: opacity 0.15s;
+  }
+  .status-pill:hover .edit-hint { opacity: 0.6; }
+
+  .pill-new        { background: var(--st-new-bg);        color: var(--st-new); }
+  .pill-new::before      { background: var(--st-new); }
+  .pill-upcoming   { background: var(--st-upcoming-bg);   color: var(--st-upcoming); }
+  .pill-upcoming::before { background: var(--st-upcoming); }
+  .pill-ready      { background: var(--st-ready-bg);      color: var(--st-ready); }
+  .pill-ready::before    { background: var(--st-ready); }
+  .pill-delivering { background: var(--st-delivering-bg); color: var(--st-delivering); }
+  .pill-delivering::before { background: var(--st-delivering); }
+  .pill-paused     { background: var(--st-paused-bg);     color: var(--st-paused); }
+  .pill-paused::before   { background: var(--st-paused); }
+  .pill-completed  { background: var(--st-completed-bg);  color: var(--st-completed); }
+  .pill-completed::before { background: var(--st-completed); }
+  .pill-cancelled  { background: var(--st-cancelled-bg);  color: var(--st-cancelled); }
+  .pill-cancelled::before { background: var(--st-cancelled); }
+
+  /* tab indicator dots */
+  .tab-dot-upcoming   { background: var(--st-upcoming); }
+  .tab-dot-ready      { background: var(--st-ready); }
+  .tab-dot-delivering { background: var(--st-delivering); }
+  .tab-dot-paused     { background: var(--st-paused); }
+  .tab-dot-completed  { background: var(--st-completed); }
+  .tab-dot-cancelled  { background: var(--st-cancelled); }
+  .tab-dot-changelog  { background: var(--accent); }
+
+  /* ═══ URGENCY PILLS (Upcoming tab only) ═══ */
+  .urgency-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-left: 6px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    vertical-align: middle;
+  }
+  .urgency-overdue {
+    background: #FBE9E3;
+    color: #9C2A0C;
+    border-color: #F3CEC3;
+  }
+  .urgency-soon {
+    background: #FFF6E0;
+    color: #7A5500;
+    border-color: #FAE4B2;
+  }
+  .urgency-pill::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .urgency-overdue::before { background: #C4521A; }
+  .urgency-soon::before    { background: #C7952F; }
+
+  /* Subtle row-level accent for overdue rows */
+  tbody tr.row-overdue td:first-child { box-shadow: inset 2px 0 0 #C4521A; }
+  tbody tr.row-soon     td:first-child { box-shadow: inset 2px 0 0 #C7952F; }
+  /* "New" rows — warm coral tint across the whole row (most attention-grabbing) */
+  tbody tr.row-new td { background: #FFF4EC; }
+  tbody tr.row-new:hover td { background: #FFE9D9; }
+  tbody tr.row-new td:first-child { box-shadow: inset 3px 0 0 var(--st-new); }
+
+  /* V2.1: rows that mention the current user — subtle accent-blue tint + indicator */
+  tbody tr.row-mentions-me td { background: linear-gradient(90deg, var(--accent-soft) 0%, #F5F8FF 60%, transparent 100%); }
+  tbody tr.row-mentions-me:hover td { background: linear-gradient(90deg, #D6E3FB 0%, #EDF2FD 60%, var(--snow) 100%); }
+  tbody tr.row-mentions-me td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  /* When a row is both New AND mentions-me, the mention styling wins */
+  tbody tr.row-new.row-mentions-me td { background: linear-gradient(90deg, var(--accent-soft) 0%, #FFF4EC 60%, transparent 100%); }
+
+  /* Highlight @mentions inline in the notes display */
+  .notes-display .at-mention {
+    display: inline-block;
+    color: var(--accent);
+    font-weight: 600;
+    background: var(--accent-soft);
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: 10.5px;
+  }
+  .notes-display .at-mention.me {
+    background: var(--accent);
+    color: var(--white);
+  }
+
+  /* ═══ TYPE CHIP ═══ */
+  .type-chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    font-weight: 500;
+    background: var(--snow);
+    color: var(--graphite);
+    border: 1px solid var(--pearl);
+  }
+
+  /* ═══ CHANGE LOG: old/new value diff cells ═══ */
+  td.log-value-cell {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  td.log-value-cell.old {
+    color: #9C2A0C;
+    background: #FBE9E3;
+    text-decoration: line-through;
+    text-decoration-color: #C4521A88;
+  }
+  td.log-value-cell.new {
+    color: #1F6E44;
+    background: #E6F4EA;
+    font-weight: 500;
+  }
+  /* When the value is a dash (empty), tone down the old/new treatment */
+  td.log-value-cell.old:has(span),
+  td.log-value-cell.new:has(span) {
+    background: transparent;
+    color: var(--fog);
+    text-decoration: none;
+  }
+
+  /* ═══ SCREENSHOT CHECKBOX ═══ */
+  td.screenshot-cell {
+    text-align: center;
+    width: 90px;
+  }
+  .ss-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border: 1.5px solid var(--silver);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--white);
+    color: var(--white);
+  }
+  .ss-check:hover { border-color: var(--slate); }
+  .ss-check.checked {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+  .ss-check svg {
+    width: 14px; height: 14px;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .ss-check.checked svg { opacity: 1; }
+
+  /* ═══ GAM LINK CELL ═══ */
+  td.gam-link-cell {
+    min-width: 110px;
+    position: relative;
+    white-space: nowrap;
+  }
+  .gam-link-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .gam-view-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    text-decoration: none;
+    padding: 4px 9px;
+    border: 1px solid var(--accent-soft);
+    background: var(--accent-soft);
+    border-radius: var(--radius-sm);
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .gam-view-btn:hover {
+    background: var(--accent);
+    color: var(--white);
+    border-color: var(--accent);
+  }
+  .gam-empty {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fog);
+  }
+  .gam-edit-btn {
+    font-size: 11px;
+    color: var(--fog);
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .gam-edit-btn:hover {
+    color: var(--ink);
+    background: var(--snow);
+  }
+  .gam-editor {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 100;
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    box-shadow: var(--shadow-lg);
+    min-width: 320px;
+  }
+  .gam-editor.open { display: block; }
+  .gam-editor.flip-up {
+    top: auto;
+    bottom: calc(100% + 4px);
+  }
+  .gam-editor label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mist);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .gam-input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--silver);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    outline: none;
+    color: var(--ink);
+    background: var(--snow);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .gam-input:focus {
+    border-color: var(--ink);
+    background: var(--white);
+  }
+  .gam-editor-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .gam-save, .gam-clear {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+  .gam-save {
+    background: var(--ink);
+    color: var(--white);
+    border-color: var(--ink);
+  }
+  .gam-save:hover { background: var(--graphite); border-color: var(--graphite); }
+  .gam-clear {
+    background: var(--white);
+    color: var(--slate);
+    border-color: var(--silver);
+  }
+  .gam-clear:hover { color: var(--ink); border-color: var(--slate); }
+
+  /* ═══ REPORT REQUEST BUTTON (Delivering + Completed tabs) ═══ */
+  td.report-btn-cell {
+    white-space: nowrap;
+    min-width: 130px;
+    text-align: center;
+  }
+  .report-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 6px 12px;
+    border: 1px solid var(--silver);
+    background: var(--white);
+    color: var(--graphite);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .report-btn:hover {
+    background: var(--ink);
+    color: var(--white);
+    border-color: var(--ink);
+  }
+  .report-btn:active { transform: scale(0.97); }
+  .report-btn.requested {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent-soft);
+    cursor: default;
+    font-weight: 600;
+  }
+  .report-btn.requested:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent-soft);
+  }
+  .report-btn:disabled { cursor: default; }
+  .report-btn.sending {
+    background: var(--snow);
+    color: var(--mist);
+    border-color: var(--pearl);
+    cursor: wait;
+  }
+
+  /* ═══ ASSETS / NOTES EDITABLE CELL ═══ */
+  td.editable-notes {
+    cursor: text;
+    position: relative;
+    min-width: 180px;
+    max-width: 260px;
+  }
+  .notes-display {
+    font-size: 12px;
+    color: var(--graphite);
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.12s;
+    min-height: 22px;
+    border: 1px solid transparent;
+  }
+  td.editable-notes:hover .notes-display {
+    background: var(--snow);
+    border-color: var(--pearl);
+  }
+  .notes-placeholder {
+    color: var(--fog);
+    font-style: italic;
+    font-size: 11px;
+  }
+  .notes-editor {
+    display: none;
+    width: 100%;
+    min-width: 220px;
+    padding: 6px 8px;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--ink);
+    background: var(--white);
+    resize: vertical;
+    outline: none;
+    box-shadow: 0 0 0 3px var(--pearl);
+  }
+  td.editable-notes.editing .notes-display { display: none; }
+  td.editable-notes.editing .notes-editor  { display: block; }
+
+  /* V2.2: @mention autocomplete dropdown */
+  .mention-autocomplete {
+    position: fixed;
+    background: var(--white);
+    border: 1px solid var(--silver);
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(14,14,16,0.14), 0 2px 6px rgba(14,14,16,0.06);
+    min-width: 180px;
+    max-width: 240px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 10001;
+    padding: 4px 0;
+    display: none;
+    animation: mentionFadeIn 0.12s ease;
+  }
+  .mention-autocomplete.open { display: block; }
+  @keyframes mentionFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .mention-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink);
+    transition: background 0.08s;
+  }
+  .mention-option:hover,
+  .mention-option.selected {
+    background: var(--accent-soft);
+    color: var(--accent-hover);
+  }
+  .mention-option .at {
+    color: var(--accent);
+    font-weight: 600;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .mention-option .name {
+    font-weight: 500;
+  }
+  .mention-option .badge-mapped {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--mist);
+    letter-spacing: 0.05em;
+  }
+  .mention-option .badge-mapped.is-mapped {
+    color: var(--accent);
+  }
+  .mention-empty {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--mist);
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* ═══ EDITABLE DATE CELLS ═══ */
+  td.editable-date {
+    cursor: pointer;
+    position: relative;
+    min-width: 110px;
+  }
+  .date-display {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--graphite);
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.12s, border-color 0.12s;
+    white-space: nowrap;
+  }
+  td.editable-date:hover .date-display {
+    background: var(--snow);
+    border-color: var(--pearl);
+  }
+  .date-display.empty { color: var(--fog); font-style: italic; }
+  .date-display .edit-icon {
+    opacity: 0;
+    font-size: 10px;
+    transition: opacity 0.15s;
+  }
+  td.editable-date:hover .edit-icon { opacity: 0.5; }
+
+  .date-picker {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 100;
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 12px;
+    box-shadow: var(--shadow-lg);
+    min-width: 220px;
+  }
+  .date-picker.open { display: block; }
+  .date-picker.flip-up {
+    top: auto;
+    bottom: calc(100% + 4px);
+  }
+  .date-picker-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mist);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .date-clear {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--fog);
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0.05em;
+  }
+  .date-clear:hover { color: var(--ink); }
+  .date-fields {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .date-fields input {
+    border: 1px solid var(--silver);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    padding: 7px 4px;
+    text-align: center;
+    background: var(--snow);
+    color: var(--ink);
+    -moz-appearance: textfield;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .date-fields input:focus {
+    border-color: var(--ink);
+    background: var(--white);
+  }
+  .date-fields input::-webkit-outer-spin-button,
+  .date-fields input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .d-mm, .d-dd { width: 42px; }
+  .d-yyyy { width: 60px; }
+  .d-sep { color: var(--fog); font-weight: 500; }
+  .date-apply {
+    width: 100%;
+    margin-top: 10px;
+    padding: 7px;
+    background: var(--ink);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .date-apply:hover { background: var(--graphite); }
+
+  /* ═══ STATUS PORTAL ═══ */
+  #status-portal {
+    position: fixed;
+    z-index: 9999;
+    background: var(--white);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    min-width: 170px;
+    padding: 4px;
+    display: none;
+  }
+  .portal-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    color: var(--graphite);
+    transition: background 0.1s;
+  }
+  .portal-option:hover { background: var(--snow); }
+  .portal-option.selected { background: var(--pearl); color: var(--ink); }
+  .portal-option .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ═══ EMPTY STATE ═══ */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--mist);
+  }
+  .empty-state .icon {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--silver);
+    margin-bottom: 8px;
+  }
+  .empty-state p {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--slate);
+  }
+  .empty-state small {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fog);
+    font-style: normal;
+  }
+
+  /* ═══ LOADING ═══ */
+  .loading {
+    text-align: center;
+    padding: 100px 20px;
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--mist);
+    font-size: 18px;
+  }
+  .loading .spinner {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border: 2px solid var(--pearl);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ═══ SETUP PANEL ═══ */
+  .setup-panel {
+    background: var(--white);
+    border: 1px solid var(--pearl);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin: 24px 56px;
+    box-shadow: var(--shadow-sm);
+  }
+  .setup-panel h3 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+  .setup-panel p { font-size: 13px; color: var(--slate); line-height: 1.6; }
+  .setup-panel code {
+    font-family: var(--font-mono);
+    background: var(--snow);
+    border: 1px solid var(--pearl);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+  .setup-panel ol { padding-left: 22px; margin: 10px 0; }
+  .setup-panel li { margin: 4px 0; font-size: 13px; color: var(--graphite); }
+  .setup-fields {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .setup-fields input {
+    flex: 1;
+    min-width: 240px;
+    padding: 9px 12px;
+    border: 1px solid var(--silver);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    outline: none;
+  }
+  .setup-fields input:focus { border-color: var(--ink); }
+
+  /* ═══ ROW STATE STYLING ═══ */
+  tbody tr.row-paused td { opacity: 0.7; }
+  tbody tr.row-completed td { opacity: 0.55; }
+  tbody tr.row-completed:hover td { opacity: 0.8; }
+  tbody tr.row-cancelled td { opacity: 0.5; }
+  tbody tr.row-cancelled:hover td { opacity: 0.75; }
+  tbody tr.row-cancelled td.advertiser-cell,
+  tbody tr.row-cancelled td.name-cell { text-decoration: line-through; }
+
+  /* ═══ RESPONSIVE ═══ */
+  @media (max-width: 900px) {
+    header, .auth-bar, .tab-bar, .controls, main, .setup-panel { padding-left: 20px; padding-right: 20px; margin-left: 0; margin-right: 0; }
+    .stats-row { display: none; }
+    .brand-title { font-size: 28px; }
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     V2: COMMAND PALETTE + SHORTCUTS HELP + ROW ACTIVITY
+     ══════════════════════════════════════════════════════════ */
+
+  /* Command palette */
+  .cmd-palette {
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 14, 16, 0.45);
+    backdrop-filter: blur(3px);
+    z-index: 10000;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 14vh;
+    animation: fadeOverlay 0.15s ease;
+  }
+  .cmd-palette.open { display: flex; }
+  @keyframes fadeOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .cmd-panel {
+    width: min(600px, 92vw);
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(14,14,16,0.35), 0 4px 12px rgba(14,14,16,0.15);
+    overflow: hidden;
+    border: 1px solid var(--pearl);
+    animation: slideDown 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .cmd-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--pearl);
+    color: var(--slate);
+  }
+  .cmd-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--ink);
+    background: transparent;
+  }
+  .cmd-input::placeholder { color: var(--fog); }
+  .cmd-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mist);
+    background: var(--snow);
+    padding: 3px 7px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--pearl);
+  }
+  .cmd-results {
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+  .cmd-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.1s;
+    gap: 12px;
+  }
+  .cmd-result.selected { background: var(--snow); }
+  .cmd-result-main { display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1; }
+  .cmd-result-title {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cmd-result-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--mist);
+    letter-spacing: 0.04em;
+  }
+  .cmd-result-type {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 3px 8px;
+    background: var(--accent-soft);
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+  .cmd-empty {
+    padding: 24px 20px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--mist);
+    font-size: 15px;
+  }
+  .cmd-footer {
+    display: flex;
+    gap: 20px;
+    padding: 10px 20px;
+    border-top: 1px solid var(--pearl);
+    background: var(--snow);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--mist);
+  }
+  .cmd-footer kbd {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    background: var(--white);
+    border: 1px solid var(--silver);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-right: 4px;
+    color: var(--slate);
+  }
+
+  /* Shortcuts help overlay */
+  .shortcuts-help {
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 14, 16, 0.45);
+    backdrop-filter: blur(3px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: fadeOverlay 0.15s ease;
+  }
+  .shortcuts-help.open { display: flex; }
+  .shortcuts-panel {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    width: min(640px, 92vw);
+    max-height: 86vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(14,14,16,0.35);
+    border: 1px solid var(--pearl);
+    animation: slideDown 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .shortcuts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--pearl);
+  }
+  .shortcuts-header h2 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .shortcuts-close {
+    width: 28px; height: 28px;
+    background: none;
+    border: 1px solid var(--silver);
+    border-radius: 50%;
+    font-size: 18px;
+    color: var(--slate);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .shortcuts-close:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+  .shortcuts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 20px 24px;
+  }
+  .shortcuts-section h3 {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mist);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .shortcut-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--graphite);
+  }
+  .shortcut-row kbd {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--snow);
+    border: 1px solid var(--silver);
+    border-bottom-width: 2px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: var(--ink);
+    font-weight: 500;
+    min-width: 24px;
+    text-align: center;
+  }
+  .shortcut-row span { color: var(--slate); }
+  .shortcuts-footer {
+    padding: 12px 24px;
+    border-top: 1px solid var(--pearl);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--mist);
+    background: var(--snow);
+    text-align: center;
+  }
+  .shortcuts-footer kbd {
+    font-family: var(--font-mono);
+    background: var(--white);
+    border: 1px solid var(--silver);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--slate);
+  }
+
+  /* Grid becomes single column on narrow screens */
+  @media (max-width: 600px) {
+    .shortcuts-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Row activity indicator — briefly highlights rows that changed in the last sync */
+  tbody tr.activity-flash td {
+    animation: activityFlash 3s ease-out;
+  }
+  @keyframes activityFlash {
+    0%, 20%  { background: #FFF4D1; box-shadow: inset 3px 0 0 var(--gold, #C7952F); }
+    100%     { background: inherit; }
+  }
+
+  /* Filter summary bar — V2 contextual insights */
+  .filter-summary {
+    display: none;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 10px 16px;
+    margin: 0 0 16px;
+    background: linear-gradient(90deg, var(--accent-soft) 0%, var(--snow) 100%);
+    border: 1px solid var(--pearl);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--graphite);
+    letter-spacing: 0.04em;
+  }
+  .filter-summary.visible { display: flex; }
+  .filter-summary .fs-label {
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+  .filter-summary .fs-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .filter-summary .fs-stat .num {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .filter-summary .fs-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--silver);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-eyebrow">Campaign Operations</div>
+      <a href="#" class="brand-logo-link" onclick="return false" aria-label="Sightline">
+        <img class="brand-logo" alt="Sightline" width="250" height="38" loading="eager" decoding="sync" onerror="this.style.display='none'; this.nextElementSibling&&(this.nextElementSibling.style.display='block');" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAAAAAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAxAUMDASIAAhEBAxEB/8QAHQAAAgICAwEAAAAAAAAAAAAAAAkHCAIFAwQGAf/EAFIQAAAEBAMDBQkHEQgDAAAAAAECAwQABQYRBwgSCRMhFCIxMlEVOEFCYWJxdbMjMzdSVHKRFhgZNkNVc3SBkpOUlaGx0tMkRFOCg7K0w1ei0f/EABcBAQEBAQAAAAAAAAAAAAAAAAACAQP/xAAeEQEBAQACAgMBAAAAAAAAAAAAARECMRIhMkFRQv/aAAwDAQACEQMRAD8AanBFcs4uZWaZZpVSU8ZS1GbsX0wO3fNVTCQ5kwJq9zP4B9PCNpQmPWHuarDmbNZA8VcPFGhxXkYr8mfon03LYQN8boOUbRuM1L1PVbK6nPMyS1yVyaWvFGDoofc1idYkbuKa5T8r9Q4C1ZPKhruYldtnDUr5F0aZnFFmsJh3oLAcQA59On3UfLHQxh2j1Py2s5XR+HCRKhfOX6DRzOVQNyZMDKAUwJF6VDcet0emHj+GrswRgnfQF+taM4xog6YqnnIzus8uB21PyRilOqwdJb7crmNuWqY30mPbiIm8ARS5vtPMakX4OFV5Qu3vfkxpcBSfN1Bx/wDaL48bU2yG+wRVzJ3nWSzMqPpO9p5aT1DL0CuHCjW6jM5BNbgYeJDeaN/nRaOIsxQghf2cnPNiFgPjY9pKnUZUpLUWTdchnbcTn1HJqNztUXqpOZKzqlpPMHAE37tmi4U0dW5yAYbfTG4zW3gjETaS3GKHZl9piyoOevqaw5YN58/aHFJxN3QiLUhw6wJAXr2+N1fTCTWW4vl0Xgv5IT012muN6L7fqTGVOUL35MaWplL6Lhx/fF1MnmeJLMg+cU7NafUlFSNURXOszAx2apA6RuPFMb+Ka94q8bCWLZQQRSPPTnErjLrX0hk1LpS1Ro+lvKlBeICc2vemLw49FixMmluLuQR4HAqtH2IuD9H1NNASCYzWWou1wQCxNZw42DsiA8+Waar8t4Up9SybA/dTfb/lyWvqWtp4+WGN1bqCIgyp4pzjGTBCQ1ZPioEmb7ebwrcmgnNOJQsH5I1OcrGee4EYKuarpwjU8yI+btyg8JrJpOJtXDt4Qw1OsEKR+ymYvfJJH+pm/mjH7Kfi/wDJJF+qD/NFeFT5Q3CCKoZD8zVWZjZRVTqqk2SR5aukmgDNLd8DAa9+PkixtfztxTNCVHOGgEF0wlrl2jrC5dZEjHLfyXLE2YrXooIoPkrzu1/j9jKNLVIhK05f3NXdambcxD6yGJp46ujnGi/ELMZLoggiMMyeIc0wpwNq+rpMCJppKmpV0AcE1kvvCF5weg0YpJ1vLHwBteKbZDc2laZkKgq5lVCUvSRljVushyJASGuc5ym1cfNi5XhjbMZLr7BC8c12ffETBPHOc0nI20oXlTIqIkB03MY46iAY1zavLFxsBsZ5PjxhrK6skxwLyguh011c9suHXTN+X90LDUkQRUrPjmgq/Lg1pRSlk2CndQ6xV+WI6+pptbj5YlvK1ibNsX8EadqyeAgWZvyHFYG5NBOBxDgEM9azfeJagjz9dThxTtFVFNWoEF0xl7h0jvAuXWRMxy38lywq8Nqbi8P90kP6mb+aEnkW4bfa0fYUiG1MxeD+6SP9TN/NFxMiGZeq8xtP1S9qkjJNWWukkkAZpbvgYlxvxjbxsJdWqgggiVKH7Wv4L6K9aqeyiE5pkRrSn6FpTFDCGdO3b5aXov1ZektunaKgkuYyJw4HL5On50XszV5aZdmXodtJHM3Wk8wYqmdMXBA1k3mm3PJ4weiKCyWusd9nzUhJVO2h5xRiqtk0FTmUYLl7UVfuR/N4fNGOvG+vTne3QaPsyedJ2hR7xV4jKZbpbzBZdIzNqQ5ekXFgDWp5vEfNi0mHmBWCOSVKUv6umiM+rp+smg1VcJgotvTmAheToeIGoeuP0xGmK+1DNOJE2lmFFMOGk+mJA5Q6fpAc6CxvESTJ74fyj+bFWaoo3ESnMZaFmmJYu+70+etZgTugtrcbsXAFATh4nV6sblrDxCm1FAe2MowT96D0RnHF1Jn2hDV5Kc2U+czREXKChWzhEinVVR0BYt+zmmLF1MMM0mW7FqjGFMzZpKJEBkCNzyaeMSESLzbCAK20W84RCJczBZcsO8wyDWU1WQiM8STOZi8arAm8SJ42kPHJfwGAQii+LeyvqylZe9mdF1C2qRugUynIXKXJ3IkAL2A3OKcfzY67LHPLF/8AAnA2g8GZHMAoVsRNhOHAvTLpr74DgPQUh/iB4IlC3GFRbNbG6paYxjTw8fPXDmQTUipSsVxEQbOCBq1E7OqICWGvdEc7MqpSdtpr31E19WsvZjDZ8PPtBpz1a29kWFMbTXvqJr6tZezGGz4efaDTnq1t7IsXy+MZO0MZ8cVHmFOXOfvJcqKEymZySxBUhrGT3mrWYP8AIU30xRjZ15YpPjXVU2qirGoTGnpGchCMT84jlyPOsftKUONvDqi2e0+px1Oct4vGxDKBLZoguqBfAQQMS/0mLEWbJWv5YWR1lRiyyaU1F0SZIJGGxlEtBSGt26RAPzoT4Mva21eSjBiXy76mquSpCXN1UgtL5iLdE2joAQKaw/ljyuXil8D8GBfSSgKmkbl/OXYq7ss1RXcq/ERJY2oSlDoLEVZysj9V5jMTWdRyWdSuXNEWJGokea9eoBNx5pfLFI8sVML0bnLo+QuVCKuJdPRaqKE6phJrLqLGcZsLfZ2YwrLa0/C/SHqT/uUhpowrLa0/C/SHqT/uUhw7by6WPy5Zw8GqOwKoWSTmu2LCaMJUi3ctlElhFM4F4gOklorTtJcdKDxkJRf1F1G2n3IeUco3Cahd3e1uuUOyOHC3ZhTnE3DqnqsRr1iwSnDJJ6DY8uOcyQHC+nVr4xE+azKE/wArpZCZ7UjaoO62907hqKO60W7TGv0xfGcdTd8TJtnx3q1I/wCv7U0TxUNMSirJaaXzqWtZqyMYDi2eJAqQTB0DpGIH2fHerUj/AK/tTRY6Od7Xx6Uu2hWFlHUplsmz6TUvKJW9B62KDlozIkcoCY1+cBYi3ZaYe0zWVIVupPqfl05URfIlTO+akVEgaOqF4nzaVd63N/x9p/vNES7Iv7TK/wDWDf2Zov8Aln2vDS9C07RZFySCSMJMRcQMqVi3IlrEPjW6Y1+MPwS1t6ke/wDHUj2EePxh+CWtvUj3/jqRyiyt9lt3zZ/Ujv8AilDeIUPstu+bP6kd/wAUobxFcu0cOmJfDEG54e9SxH/ECe2Tici+GINzw96liP8AiBPbJxk7Up7shvtxxF/EGntDwzQvhhZeyG+3HEX8Qae0PDNC+GK5dp4dEzbQtso7zZ1KgiW6qhWhCF7RFMkcmTzMDNcq+MC8iqhNZlTz9YrScM1+s0P4q1u0vh7Qjmz69+POfwjP/YSLC7QvKwNT0YxxVplqJpoxZolnTZIvOcIgQNK/pJ0D5vojp/MiXR2tDxCYSXDZ02VKs3WM5OmqQbgcBKQSiEWTyBd6vRf4NX2hoUtWeN85rzCukqMnH9qLTKi3Inhjc/cntpSN83Tw8kNpyBd6vRf4NX2homzOJxu1LeLHwWVl6meewPCf8iNWUNR2Nij/ABBcS9vIu5a6W8mSG9S3omJp4aTcemHAYsfBZWXqZ57A8JSyv5f1Mx+JBqTSnJZGJWSjvlZ0N91NPN03D40Zw6reXZnQZgcqn33pL9mj/Sia8LXVFzqmU53Qicv7izDnkcy5DdJrW4XtYIod9iGe/wDklv8Ask39SLt5fMJ1MEsKJLRqsxLNjy4pyi6IjugPcwm6txt0xNz6Vx1JUEEESpVnPrROI9RURTc6w0K77t08/O9P3NW0OQIJBLcgeP5S/wAYg7BfaESKuZepQGPsjbF3n9mWmS7W6BzdFnCNuYbzi/mhDFQG/CK+ZjMltA5gmyzty0CRVRo9ynbEhSqCPgBUvQoHp49gxfGz7TYjF0nlmyYNXFXS0jSZTuZAK8tQbOAeONBg4FQuIgmTzh/fFW16ixHz4ZhqfqOUUoVtK5K4QIBiXKi1QItvfdVh6T/N/wApYlzBnZWOUanXdYmz5J7J2a2lqxlShruyB1ROc3FMPNLzvOi/tIUbI6DkTeS0/K2solbYtkmzRICED/6PlhsictbwhdBADsCMoIIh0K4zu4Y48SDG1fElgrMJhK0TAWVTGn9eqXoheyZiF4k84eID03iMXO0QxzcSBen1Zy35SqmKAu+QEK5ABDT026fLpvDkxKBiiAhcBjWDS8mM45QMpYi4/wAUWxNX02i/JGFx7N7LFVKWIA4n1RLnMrlzZFQsvTfEEizpY/NFXSbjYA1c7xtUMxjEpQKUAALAEZRNutkwoHaVyd+8zRTRVuzXXS7ms+emiJi+9j40Ncw9KJaCpsBAQEJa2uA/gixuVWLZwbUq3SUOHhUIAjHYKUChYOAQt0kxoK3o+WV/SM1pucocplszbnbLJj2G8IeUOkPRCesYctGKWUnEEZ3JAmB5a2WMrLqllRTCBSfFVt1BtwEDc00OljiVRTcJGTUIVQhukpguAwlws0m9ztGcdptKglac/bEXVDdcpbS5MHA/NEA6fKWPdZJMq+JVUYxSPEyoWTiTyhg7F8o7m5BBw9ON+BCG48b9ceHzoaC3o2QNXRnKMll6TkfupGpAN9No3AFAgWDgEV5fjM/WUK62rkrePsXaSFs0XcAEl4mSTEwe/KQ0WOsqzbuRAVUElRDxlCAaJ43G2ai/KgmdHLfhwRQhiKFkrcBKcukwc3siou1pl7t8GHwNmqzjTym+6TMa3U7IYcRMqZAIQoFKHQAB0Rgs1RcgG+QIrbo3hQNGy5dLPSvuz+bqtcrVJJrJnSOG+uVQLD76aLFRxpIpopgRMhSEDxShYI5ImtnSre0ibqussE2SQSUWUF+15iRRMbrj2RFOyXYuWNH16V03VbiL5vYqpDF+5eWL6rIJuExIqmRQnYctwjFBqi1AwJJJpX6d2UCxu+sZnvXPHj8XiiOFFaFKAmEZK8AAKFxH3A8ewjExQMUQEAEB6QGMUQdhTXVe4L1Qao6QI6ls1FA7bfmZb33M+m4aTlMHiliYvr8cx338X/Y6P9KHC9ymPyRD9EEHcpj8kQ/RBHXzn45+NQJkbxOq3FnBEk+rV0d5OhfuERUO3KjzCiGkNIFAI2udxFRfKviKmkmZU5mBAKQgXMb3ZOJsRbptk9CRCpl+KQtgj6dMiyZiHKByD0lMFwGOe+1Fr7JSWPGFY4hi5arNimYNNO9TMW/uh+2GWdIRwIM27YTCigmkI9OgoFvHYhbtJMJ4z3yh+6zgzlVFk5VS3jP3QiImL1CQ3CVtEntNtGzhIqiCjQhFEzluBwElhKIR3lGDZY+8UbpKKfGOQBGOcR4wt0kJpzt5UH2BuJSjqQsHDikJ0c7hiZIgn3B+k6A+jxfNhimQpuo2yt0YmqmdJQE1blOWw++GiflmqTooAqkRQodAHLeMkkSIkAiZQIUvQUoWCKvLYSZXlsVwEcLqxKACYRkzwAKULiPuJ4R5hJX1f4J1SaoaQRcsJsKB2u9UY74ug+m4aTlMHilh9xiAYpgELgPSEdXuUy+Rofowhx5YWaUD9f5mO++5v2Ij/Ti5Oz7x4xDxsY1crXzwXSjFRErW7IjewGAb9UoXi2vcll8kQ/RljkQaItdW6RTSv07soFvC2MkrsQQQRCxBBBAEfIIID7BBBAEEEEAQQQQBBBBAEEEEAQQQQgIIIIAggggCCCCAIIIIAggggPkfIIIDKCCCAIIIIAggggCCCCAIIIIAggggCCCCA//Z">
+        <svg class="brand-logo brand-logo-fallback" viewBox="0 0 300 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:none">
+          <g fill="#0E0E10">
+            <path d="M6 12 L22 12 L30 22 L22 32 L6 32 L14 22 Z"/>
+            <path d="M6 24 L22 24 L30 34 L22 44 L6 44 L14 34 Z" opacity="0.7"/>
+            <path d="M6 36 L22 36 L30 46 L22 56 L6 56 L14 46 Z" opacity="0.4"/>
+          </g>
+          <text x="46" y="42" font-family="Inter Tight, Arial, sans-serif" font-size="30" font-weight="600" letter-spacing="3" fill="#0E0E10">SIGHTLINE</text>
+        </svg>
+      </a>
+    </div>
+    <div class="stats-row" id="statsRow"></div>
+  </div>
+</header>
+
+<div class="auth-bar">
+  <span class="auth-status" id="authStatus">Not signed in — read-only mode</span>
+  <span class="save-indicator" id="saveIndicator"></span>
+  <span class="sync-pill" id="syncPill" style="display:none"><span class="dot"></span><span id="syncLabel">Auto-sync on</span></span>
+  <button class="btn btn-ghost" id="btnReload" style="display:none">↺ Reload</button>
+  <button class="btn btn-ghost" id="btnSignout" style="display:none">Sign out</button>
+  <button class="btn btn-primary" id="btnSignin">Sign in with Google</button>
+  <button class="btn btn-accent" id="btnSigninFF" style="display:none">Sign in (Firefox)</button>
+</div>
+
+<div id="setupPanel"></div>
+
+<nav class="tab-bar" id="tabBar"></nav>
+
+<div class="controls">
+  <div class="search-wrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input class="search-input" type="text" id="searchInput" placeholder="Search advertiser, IO, line item, deal ID…">
+  </div>
+  <div class="filter-wrap">
+    <select class="filter-select" id="advertiserFilter">
+      <option value="">All Advertisers</option>
+    </select>
+    <button type="button" class="filter-clear" data-target="advertiserFilter" title="Clear filter" aria-label="Clear advertiser filter">×</button>
+  </div>
+  <div class="filter-wrap">
+    <select class="filter-select" id="salespersonFilter">
+      <option value="">All Salespeople</option>
+    </select>
+    <button type="button" class="filter-clear" data-target="salespersonFilter" title="Clear filter" aria-label="Clear salesperson filter">×</button>
+  </div>
+  <div class="filter-wrap">
+    <select class="filter-select" id="typeFilter">
+      <option value="">All Types</option>
+    </select>
+    <button type="button" class="filter-clear" data-target="typeFilter" title="Clear filter" aria-label="Clear type filter">×</button>
+  </div>
+  <button type="button" class="clear-all-link" id="clearAllFilters" style="display:none" title="Reset all filters and search">Clear all</button>
+  <div class="controls-right">
+    <button class="btn btn-float btn-mentions" id="btnFloatMentions" data-key="mentions" style="display:none" title="Float rows that mention you to top">
+      <span class="float-dot" style="background:var(--accent)"></span>@Me<span class="mentions-count" id="mentionsCount"></span>
+    </button>
+    <button class="btn btn-float" id="btnFloatNew" data-key="new" style="display:none" title="Float new items to top">
+      <span class="float-dot" style="background:var(--st-new)"></span>New
+    </button>
+    <button class="btn btn-float" id="btnFloatOverdue" data-key="overdue" style="display:none" title="Float overdue items to top">
+      <span class="float-dot" style="background:#C4521A"></span>Overdue
+    </button>
+    <button class="btn btn-float" id="btnFloatSoon" data-key="soon" style="display:none" title="Float items starting within 7 days to top">
+      <span class="float-dot" style="background:#C7952F"></span>Soon
+    </button>
+    <span class="result-count" id="resultCount"></span>
+  </div>
+</div>
+
+<main id="mainContent"></main>
+
+<div id="status-portal">
+  <div class="portal-option" data-val="new"><span class="dot" style="background:#E55722"></span>New</div>
+  <div class="portal-option" data-val="upcoming"><span class="dot" style="background:var(--st-upcoming)"></span>Upcoming</div>
+  <div class="portal-option" data-val="ready"><span class="dot" style="background:var(--st-ready)"></span>Ready</div>
+  <div class="portal-option" data-val="delivering"><span class="dot" style="background:var(--st-delivering)"></span>Delivering</div>
+  <div class="portal-option" data-val="paused"><span class="dot" style="background:var(--st-paused)"></span>Paused</div>
+  <div class="portal-option" data-val="completed"><span class="dot" style="background:var(--st-completed)"></span>Completed</div>
+  <div class="portal-option" data-val="cancelled"><span class="dot" style="background:var(--st-cancelled)"></span>Cancelled</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════════
+const SPREADSHEET_ID = '1edU9oD_HT3Rf_dMuaWdVJxgAK_-auhGy1iGLKKlZ-Fk';
+
+// Separate read-only spreadsheet for the Change Log tab
+const CHANGELOG_SPREADSHEET_ID = '1ZZhXpmq5HRoinfES8JXm6HPmC_BLvHF0y7bBnz-jjY4';
+
+// Webhook URLs are loaded at runtime from the "Slack" tab of the main sheet.
+// To avoid checking secrets into source control, the HTML ships with no
+// webhooks baked in. Add these special rows to the Slack tab to populate them:
+//
+//   First Name              | Slack User ID / Webhook URL
+//   ------------------------|------------------------------------------------
+//   _webhook_screenshots    | https://hooks.slack.com/services/...
+//   _webhook_reports        | https://hooks.slack.com/services/...
+//   _webhook_mentions       | https://hooks.slack.com/services/...
+//
+// All three keys must start with an underscore so they're easy to spot and
+// don't collide with any real first names.
+let SLACK_WEBHOOK_URL        = '';  // screenshots channel
+let SLACK_REPORT_WEBHOOK_URL = '';  // reports channel
+let MENTIONS_WEBHOOK_URL     = '';  // mentions channel
+
+// Name of the sheet tab that holds the first-name → Slack user ID mapping.
+const SLACK_MAP_TAB = 'Slack';
+
+// Column order in sheet (0-indexed):
+// A:Status | B:Assets | C:Start Date | D:Deal ID | E:Advertiser
+// F:IO Name | G:Line Item | H:Line Item ID | I:End Date | J:Type
+// K:Salesperson | L:Screenshots | M:GAM Link
+const COL = {
+  status:      0,  // A
+  assets:      1,  // B
+  startDate:   2,  // C
+  dealId:      3,  // D
+  advertiser:  4,  // E
+  ioName:      5,  // F
+  lineItem:    6,  // G
+  lineItemId:  7,  // H
+  endDate:     8,  // I
+  type:        9,  // J
+  salesperson: 10, // K
+  screenshots: 11, // L
+  gamLink:     12, // M
+};
+
+const SHEET_MAP = {
+  upcoming:   { name: 'Upcoming',   range: 'Upcoming!A2:M' },
+  ready:      { name: 'Ready',      range: 'Ready!A2:M' },
+  delivering: { name: 'Delivering', range: 'Delivering!A2:M' },
+  paused:     { name: 'Paused',     range: 'Paused!A2:M' },
+  completed:  { name: 'Completed',  range: 'Completed!A2:M' },
+  cancelled:  { name: 'Cancelled',  range: 'Cancelled!A2:M' },
+};
+
+const TABS = [
+  { id: 'upcoming',   label: 'Upcoming',   dotClass: 'tab-dot-upcoming' },
+  { id: 'ready',      label: 'Ready',      dotClass: 'tab-dot-ready' },
+  { id: 'delivering', label: 'Delivering', dotClass: 'tab-dot-delivering' },
+  { id: 'paused',     label: 'Paused',     dotClass: 'tab-dot-paused' },
+  { id: 'completed',  label: 'Completed',  dotClass: 'tab-dot-completed' },
+  { id: 'cancelled',  label: 'Cancelled',  dotClass: 'tab-dot-cancelled' },
+  { id: 'changelog',  label: 'Change Log', dotClass: 'tab-dot-changelog', isLog: true },
+];
+
+// Reused from Sunset tracker
+let API_KEY     = localStorage.getItem('sightline_api_key')     || 'AIzaSyD1lLF84RPvHnHT4VG5bYbXT9awCVSyJN8';
+let CLIENT_ID   = localStorage.getItem('sightline_client_id')   || '13651352959-ou0q87sgl8flfsijctk9uf6ums2ker2f.apps.googleusercontent.com';
+let accessToken = '';
+
+// ════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════
+let activeTab  = 'upcoming';
+let sortCol    = 'startDate';
+let sortAsc    = true;
+let userSortedThisTab = false;  // set true when user clicks a column header
+const DEFAULT_SORT = {
+  upcoming:   { col: 'startDate', asc: true  },
+  ready:      { col: 'startDate', asc: true  },
+  delivering: { col: 'endDate',   asc: true  },
+  paused:     { col: 'startDate', asc: true  },
+  completed:  { col: 'startDate', asc: false }, // most-recently-ended first on Completed
+  cancelled:  { col: 'startDate', asc: false }, // most-recently-cancelled first
+  changelog:  { col: 'changedOn', asc: false }, // most-recent change first
+};
+
+function applyDefaultSort(tabId) {
+  const d = DEFAULT_SORT[tabId];
+  if (!d) return;
+  sortCol = d.col;
+  sortAsc = d.asc;
+}
+let floatNew     = false;
+let floatOverdue = false;
+let floatSoon    = false;
+let floatMentions = false;  // V2.1: floats @me-mentioned rows to top
+
+// V2.1: current user's first name for @mention matching.
+// Set from Google userinfo response, or restored from localStorage on page load
+// (so mentions work immediately on reload, before the silent userinfo fetch returns).
+let currentUserFirstName = (localStorage.getItem('sightline_user_first_name') || '').toLowerCase();
+
+// V2: Row activity — set of row keys that changed in the last silent refresh.
+// Consumed by renderTable to apply a brief .activity-flash class, then cleared
+// when the flash animation ends so each change is highlighted exactly once.
+const _changedRowKeys = new Set();
+function rowChangeKey(r) {
+  return (r.dealId || '') + '|' + (r.lineItemId || '') + '|' + (r.ioName || '') + '|' + (r.lineItem || '');
+}
+
+// V2.1: @mention detection — scans Assets/Notes for @name tokens and returns
+// a lowercased Set of all mentioned names in that row. Matches are
+// case-insensitive, require a word boundary (so "support@example.com" won't
+// match "@example"), and allow letters/numbers/underscore.
+const _mentionRegex = /(?:^|\s|[^\w@])@([a-z][a-z0-9_]*)/gi;
+function extractMentions(row) {
+  const text = (row._assetsOverride !== undefined ? row._assetsOverride : row.assets) || '';
+  const mentions = new Set();
+  let match;
+  _mentionRegex.lastIndex = 0;
+  while ((match = _mentionRegex.exec(text)) !== null) {
+    mentions.add(match[1].toLowerCase());
+  }
+  return mentions;
+}
+
+function rowMentionsMe(row) {
+  if (!currentUserFirstName) return false;
+  return extractMentions(row).has(currentUserFirstName);
+}
+
+// Returns an object: { upcoming: 2, ready: 0, delivering: 1, ..., total: 3 }
+function countMyMentionsByTab() {
+  const out = { total: 0 };
+  TABS.forEach(t => {
+    if (t.isLog) { out[t.id] = 0; return; }
+    const rows = DATA[t.id] || [];
+    let n = 0;
+    if (currentUserFirstName) {
+      rows.forEach(r => { if (rowMentionsMe(r)) n++; });
+    }
+    out[t.id] = n;
+    out.total += n;
+  });
+  return out;
+}
+
+// Legacy wrapper — still used in a couple of places
+function countMyMentions() {
+  return countMyMentionsByTab().total;
+}
+
+// ════════════════════════════════════════════════════════════
+//  V2.2: @MENTION AUTOCOMPLETE
+// ════════════════════════════════════════════════════════════
+// Provides a dropdown of suggested names when the user types `@` followed
+// by letters in a notes textarea. Matches against the Slack user map first
+// (those get a tiny "•" indicator) but falls through to free-typing — so
+// names not in the Slack tab can still be entered manually.
+//
+// Single shared dropdown element appended to <body> on first use; positioned
+// fixed near the active textarea using getBoundingClientRect.
+
+let _mentionDropdown = null;          // The DOM node
+let _mentionState = {
+  textarea: null,                     // The active textarea
+  query: '',                          // Current query after @ (lowercase)
+  startPos: -1,                       // Position of the @ in textarea.value
+  selected: 0,                        // Index of currently-highlighted option
+  options: [],                        // Array of { name, mapped }
+};
+
+function ensureMentionDropdown() {
+  if (_mentionDropdown) return _mentionDropdown;
+  _mentionDropdown = document.createElement('div');
+  _mentionDropdown.className = 'mention-autocomplete';
+  _mentionDropdown.id = 'mentionAutocomplete';
+  document.body.appendChild(_mentionDropdown);
+  // Click-to-select via delegation
+  _mentionDropdown.addEventListener('mousedown', (e) => {
+    // mousedown not click — click would fire after the textarea already lost focus
+    const opt = e.target.closest('.mention-option');
+    if (!opt) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const idx = parseInt(opt.dataset.idx);
+    if (!isNaN(idx)) {
+      _mentionState.selected = idx;
+      acceptMentionSuggestion();
+    }
+  });
+  return _mentionDropdown;
+}
+
+// Build candidate list: mapped Slack users first (sorted), then any extra names
+// the user has typed before in any row's notes (so prior mentions stay suggestable).
+function buildMentionCandidates(query) {
+  const q = (query || '').toLowerCase();
+  // Filter out any underscore-prefixed keys defensively (those are reserved
+  // for config rows like _webhook_*, even though fetchSlackMap already strips them)
+  const mapped = new Set(Object.keys(_slackUserMap).filter(n => !n.startsWith('_')));
+  // Also gather mentions seen in any current row's notes — lets you re-mention
+  // someone you've used before even if they're not in the Slack tab
+  const seen = new Set();
+  TABS.forEach(t => {
+    if (t.isLog) return;
+    (DATA[t.id] || []).forEach(r => {
+      extractMentions(r).forEach(m => seen.add(m));
+    });
+  });
+  // Combine: all unique names
+  const allNames = new Set([...mapped, ...seen]);
+
+  // Smart match: prefix matches first, then substring matches; case-insensitive
+  const prefixMatches = [];
+  const substringMatches = [];
+  allNames.forEach(name => {
+    const n = name.toLowerCase();
+    if (q === '') { prefixMatches.push(name); return; }
+    if (n.startsWith(q))         prefixMatches.push(name);
+    else if (n.includes(q))      substringMatches.push(name);
+  });
+  prefixMatches.sort();
+  substringMatches.sort();
+  return [...prefixMatches, ...substringMatches]
+    .slice(0, 8)  // cap to keep dropdown short
+    .map(name => ({ name, mapped: mapped.has(name) }));
+}
+
+function renderMentionDropdown() {
+  const dd = ensureMentionDropdown();
+  const opts = _mentionState.options;
+  if (opts.length === 0) {
+    dd.innerHTML = '<div class="mention-empty">No matches — keep typing to use as-is</div>';
+    return;
+  }
+  dd.innerHTML = opts.map((o, i) => {
+    const isSel = i === _mentionState.selected;
+    const display = o.name.charAt(0).toUpperCase() + o.name.slice(1);
+    const mapBadge = o.mapped
+      ? '<span class="badge-mapped is-mapped" title="Will ping in Slack">●</span>'
+      : '<span class="badge-mapped" title="Not in Slack tab — will tag without ping">○</span>';
+    return `<div class="mention-option${isSel ? ' selected' : ''}" data-idx="${i}">
+      <span class="at">@</span><span class="name">${escHTML(display)}</span>${mapBadge}
+    </div>`;
+  }).join('');
+}
+
+function positionMentionDropdown() {
+  const dd = ensureMentionDropdown();
+  const ta = _mentionState.textarea;
+  if (!ta) return;
+  const rect = ta.getBoundingClientRect();
+  // Position just below the textarea, aligned to its left edge
+  const top = rect.bottom + 4;
+  const left = rect.left;
+  dd.style.top = top + 'px';
+  dd.style.left = left + 'px';
+  // If there's not enough room below, flip above the textarea
+  if (top + dd.offsetHeight > window.innerHeight - 10) {
+    dd.style.top = (rect.top - dd.offsetHeight - 4) + 'px';
+  }
+}
+
+function showMentionDropdown(textarea, startPos, query) {
+  _mentionState.textarea = textarea;
+  _mentionState.startPos = startPos;
+  _mentionState.query = query;
+  _mentionState.options = buildMentionCandidates(query);
+  _mentionState.selected = 0;
+  const dd = ensureMentionDropdown();
+  renderMentionDropdown();
+  // Show offscreen first so we can measure, then position
+  dd.style.visibility = 'hidden';
+  dd.classList.add('open');
+  positionMentionDropdown();
+  dd.style.visibility = '';
+}
+
+function hideMentionDropdown() {
+  if (_mentionDropdown) _mentionDropdown.classList.remove('open');
+  _mentionState.textarea = null;
+  _mentionState.startPos = -1;
+}
+
+function isMentionDropdownOpen() {
+  return _mentionDropdown && _mentionDropdown.classList.contains('open');
+}
+
+// Detect the current `@partial` token in the textarea, if any.
+// Returns { start, query } if cursor is inside an @-token, or null otherwise.
+function detectMentionToken(textarea) {
+  const val = textarea.value;
+  const pos = textarea.selectionStart;
+  if (pos !== textarea.selectionEnd) return null; // text is selected, not typing
+  // Walk back from cursor to find an @ that starts a valid mention
+  for (let i = pos - 1; i >= 0; i--) {
+    const ch = val[i];
+    if (ch === '@') {
+      // Char before @ must be start-of-string or non-word (so support@foo doesn't trigger)
+      const prev = i > 0 ? val[i - 1] : '';
+      if (prev === '' || /[\s(,.!?;:]/.test(prev)) {
+        const query = val.substring(i + 1, pos);
+        // Must be only letter/digit chars in the partial — bail if user typed a space etc.
+        if (/^[a-zA-Z0-9_]*$/.test(query)) {
+          return { start: i, query: query.toLowerCase() };
+        }
+      }
+      return null;
+    }
+    // If we hit whitespace before finding @, no mention here
+    if (/\s/.test(ch)) return null;
+  }
+  return null;
+}
+
+// Replace the @partial in the textarea with @fullname (plus space)
+function acceptMentionSuggestion() {
+  const ta = _mentionState.textarea;
+  if (!ta) return;
+  const opts = _mentionState.options;
+  if (opts.length === 0 || _mentionState.selected < 0) {
+    hideMentionDropdown();
+    return;
+  }
+  const chosen = opts[_mentionState.selected];
+  const start = _mentionState.startPos;
+  const queryLen = _mentionState.query.length;
+  const before = ta.value.substring(0, start);
+  const after = ta.value.substring(start + 1 + queryLen); // +1 for the @
+  const insertion = '@' + chosen.name + ' ';
+  ta.value = before + insertion + after;
+  const newCursor = before.length + insertion.length;
+  ta.setSelectionRange(newCursor, newCursor);
+  hideMentionDropdown();
+  ta.focus();
+}
+
+// Wire autocomplete onto a notes-editor textarea. Idempotent — safe to call
+// multiple times on the same element (only attaches handlers once).
+function attachMentionAutocomplete(textarea) {
+  if (!textarea || textarea._mentionWired) return;
+  textarea._mentionWired = true;
+
+  textarea.addEventListener('input', () => {
+    const tok = detectMentionToken(textarea);
+    if (!tok) { hideMentionDropdown(); return; }
+    showMentionDropdown(textarea, tok.start, tok.query);
+  });
+
+  textarea.addEventListener('keydown', (e) => {
+    if (!isMentionDropdownOpen()) return;
+    const opts = _mentionState.options;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _mentionState.selected = Math.min(_mentionState.selected + 1, opts.length - 1);
+      renderMentionDropdown();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _mentionState.selected = Math.max(_mentionState.selected - 1, 0);
+      renderMentionDropdown();
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (opts.length > 0) {
+        e.preventDefault();
+        acceptMentionSuggestion();
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      hideMentionDropdown();
+    }
+  });
+
+  // Hide on blur — but with a tiny delay so a click on the dropdown can register
+  textarea.addEventListener('blur', () => {
+    setTimeout(() => hideMentionDropdown(), 120);
+  });
+}
+
+// Reposition dropdown on scroll/resize so it stays anchored to the textarea
+window.addEventListener('scroll', () => isMentionDropdownOpen() && positionMentionDropdown(), true);
+window.addEventListener('resize', () => isMentionDropdownOpen() && positionMentionDropdown());
+
+let searchQ    = '';
+let advFilter  = '';
+let salesFilter= '';
+let typeFilter = '';
+let tokenClient = null;
+
+const DATA = { upcoming: [], ready: [], delivering: [], paused: [], completed: [], cancelled: [], changelog: [] };
+
+// ════════════════════════════════════════════════════════════
+//  INIT CREDENTIAL STORAGE
+// ════════════════════════════════════════════════════════════
+(function() {
+  if (!localStorage.getItem('sightline_api_key'))   localStorage.setItem('sightline_api_key',   API_KEY);
+  if (!localStorage.getItem('sightline_client_id')) localStorage.setItem('sightline_client_id', CLIENT_ID);
+})();
+
+// ════════════════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════════════════
+function initGoogleAuth() {
+  if (!CLIENT_ID || !window.google?.accounts?.oauth2) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email',
+    callback: (resp) => {
+      if (resp.error) {
+        // Silent refresh failed — fall through to expired-session screen
+        if (_isSilentRefresh) {
+          _isSilentRefresh = false;
+          forceExpiredLogout('Your Google sign-in needs refreshing. Please sign in again to continue.');
+          return;
+        }
+        showAuthError(resp.error);
+        return;
+      }
+      accessToken = resp.access_token;
+      if (_isSilentRefresh) {
+        // Quiet renewal — don't re-load data, don't reset session start, don't flicker UI.
+        // The 10-hour hard ceiling is tied to initial sign-in, not each refresh.
+        _isSilentRefresh = false;
+        scheduleSilentRefresh();
+        console.info('[auth] silent token refresh succeeded');
+      } else {
+        // Interactive sign-in — full setup, plus capture user's email for future silent refreshes
+        captureUserEmailForHint();
+        startSessionTimer();
+        scheduleSilentRefresh();
+        setAuthUI(true);
+        loadAllSheets();
+      }
+    },
+  });
+}
+
+// Fetch the signed-in user's email and cache it for login_hint on future silent refreshes.
+// With multiple Google accounts in the browser, login_hint is what lets silent refresh
+// pick the correct account without showing an account picker.
+async function captureUserEmailForHint() {
+  if (!accessToken) return;
+  try {
+    const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!resp.ok) return;
+    const info = await resp.json();
+    if (info.email) {
+      localStorage.setItem('sightline_login_hint', info.email);
+      console.info('[auth] login_hint captured for silent refresh:', info.email);
+    }
+    // V2.1: capture the user's first name for @mention matching
+    // Try `given_name` (from Google profile), fall back to email local-part
+    let firstName = (info.given_name || '').trim().toLowerCase();
+    if (!firstName && info.email) {
+      firstName = info.email.split('@')[0].split(/[.\-_+]/)[0].toLowerCase();
+    }
+    if (firstName) {
+      currentUserFirstName = firstName;
+      localStorage.setItem('sightline_user_first_name', firstName);
+      console.info('[auth] user first name for @mentions:', firstName);
+      // Refresh the mentions UI since we might have just learned who the user is
+      if (typeof syncFloatButtons === 'function') syncFloatButtons();
+      if (typeof renderAll === 'function' && DATA[activeTab]?.length) renderAll();
+    }
+  } catch(e) {
+    console.warn('[auth] userinfo fetch failed (silent refresh may still prompt):', e);
+  }
+}
+
+// Attempt a silent (no-popup) access-token renewal using the GIS library.
+// If the user is still signed in to Google in the browser, this succeeds with
+// zero user interaction. If it fails, the callback above triggers a clean re-login.
+let _isSilentRefresh = false;
+function requestSilentRefresh() {
+  if (!tokenClient) return;
+  // Skip if the hard session has expired — expiry path handles it
+  if (isSessionExpired()) return;
+  _isSilentRefresh = true;
+  const hint = localStorage.getItem('sightline_login_hint') || '';
+  try {
+    // login_hint tells Google which account to use silently — critical when multiple
+    // Google accounts are signed in to the browser. Without it, Google shows an account
+    // picker even for silent refreshes.
+    const args = { prompt: '' };
+    if (hint) args.hint = hint;  // GIS uses 'hint', not 'login_hint'
+    tokenClient.requestAccessToken(args);
+  } catch(e) {
+    _isSilentRefresh = false;
+    console.warn('[auth] silent refresh threw:', e);
+  }
+}
+
+function signIn() {
+  if (!CLIENT_ID || !API_KEY) { showSetupPanel(); return; }
+  if (!tokenClient) initGoogleAuth();
+  try {
+    // If we've signed this user in before, pass the stored email as a hint so they
+    // skip the account picker on interactive sign-in too.
+    const hint = localStorage.getItem('sightline_login_hint') || '';
+    const args = { prompt: '' };
+    if (hint) args.hint = hint;
+    tokenClient.requestAccessToken(args);
+  } catch(e) { showAuthError('Sign-in failed: ' + e.message); }
+}
+
+function signInFirefox() {
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: window.location.origin + window.location.pathname,
+    response_type: 'token',
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    include_granted_scopes: 'true',
+    state: 'sightline_oauth'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+function checkOAuthRedirect() {
+  if (!window.location.hash.includes('access_token')) return false;
+  const params = new URLSearchParams(window.location.hash.replace('#', ''));
+  const token = params.get('access_token');
+  if (token) {
+    accessToken = token;
+    startSessionTimer();
+    captureUserEmailForHint();
+    // Silent refresh will only work if the GIS token client initializes successfully.
+    // On Firefox (which uses the redirect flow), GIS may not be available — in that
+    // case the 1-hour expiry will fall through to the clean expired-session screen.
+    initGoogleAuth();
+    scheduleSilentRefresh();
+    setAuthUI(true);
+    history.replaceState(null, '', window.location.pathname);
+    loadAllSheets();
+    return true;
+  }
+  return false;
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = '';
+  stopSessionTimer();
+  stopAutoRefresh();
+  document.getElementById('syncPill').style.display = 'none';
+  // Clear cached data so nothing lingers after sign-out
+  TABS.forEach(t => { DATA[t.id] = []; });
+  setAuthUI(false);
+  renderTabs();
+  renderStats();
+  showSignInPrompt();
+}
+
+// ── SESSION LIFETIME ─────────────────────────────────────────
+// Access tokens from Google OAuth expire after 1 hour. We additionally
+// enforce a 10-hour max session to prevent "zombie sessions" where the UI
+// looks signed-in but writes are silently failing against a stale token.
+const SESSION_MAX_MS = 10 * 60 * 60 * 1000; // 10 hours
+let _sessionStart = 0;
+let _sessionTimer = null;
+
+function startSessionTimer() {
+  stopSessionTimer();
+  _sessionStart = Date.now();
+  _sessionTimer = setTimeout(() => forceExpiredLogout('Session expired after 10 hours. Please sign in again to continue making changes.'), SESSION_MAX_MS);
+}
+
+function stopSessionTimer() {
+  if (_sessionTimer) { clearTimeout(_sessionTimer); _sessionTimer = null; }
+  stopSilentRefreshTimer();
+  _sessionStart = 0;
+}
+
+function isSessionExpired() {
+  return _sessionStart && (Date.now() - _sessionStart > SESSION_MAX_MS);
+}
+
+// ── SILENT TOKEN REFRESH ─────────────────────────────────────
+// Google access tokens expire after ~1 hour. We proactively renew them at the
+// 55-minute mark so the user never sees an expired-session screen during normal use.
+// The 10-hour hard ceiling still applies, so Christine re-auths at most once per workday.
+const SILENT_REFRESH_MS = 55 * 60 * 1000; // 55 minutes
+let _silentRefreshTimer = null;
+
+function scheduleSilentRefresh() {
+  stopSilentRefreshTimer();
+  _silentRefreshTimer = setTimeout(requestSilentRefresh, SILENT_REFRESH_MS);
+}
+
+function stopSilentRefreshTimer() {
+  if (_silentRefreshTimer) { clearTimeout(_silentRefreshTimer); _silentRefreshTimer = null; }
+}
+
+function forceExpiredLogout(reason) {
+  console.info('[session]', reason);
+  // Sign out and show a friendly reason on the sign-in screen
+  signOut();
+  const main = document.getElementById('mainContent');
+  if (main) {
+    main.innerHTML = `
+      <div class="loading" style="padding:120px 20px">
+        <div style="font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--ink);letter-spacing:-0.02em;margin-bottom:6px">
+          Session <em style="font-style:italic;color:var(--slate);font-weight:300">expired</em>
+        </div>
+        <div style="font-family:var(--font-body);font-size:14px;color:var(--slate);font-style:normal;margin-bottom:28px;max-width:460px;margin-left:auto;margin-right:auto">
+          ${escHTML(reason)}
+        </div>
+        <button class="btn btn-primary" id="prompt-resignin" style="padding:11px 22px;font-size:11px">
+          Sign in again
+        </button>
+      </div>`;
+    document.getElementById('prompt-resignin')?.addEventListener('click', () => {
+      const isFF = navigator.userAgent.toLowerCase().includes('firefox');
+      (isFF ? signInFirefox : signIn)();
+    });
+  }
+}
+
+function setAuthUI(signedIn) {
+  document.getElementById('authStatus').textContent = signedIn
+    ? 'Signed in — changes auto-save to Google Sheets'
+    : 'Not signed in — read-only mode';
+  document.getElementById('authStatus').className = 'auth-status' + (signedIn ? ' signed-in' : '');
+  const isFF = navigator.userAgent.toLowerCase().includes('firefox');
+  document.getElementById('btnSignin').style.display   = (signedIn || isFF) ? 'none' : '';
+  document.getElementById('btnSigninFF').style.display = (!signedIn && isFF) ? ''    : 'none';
+  document.getElementById('btnSignout').style.display  = signedIn ? '' : 'none';
+  document.getElementById('btnReload').style.display   = '';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authStatus');
+  const isFF = navigator.userAgent.toLowerCase().includes('firefox');
+  el.textContent = 'Auth error: ' + msg + (isFF ? ' — allow popups in Firefox' : '');
+  el.className = 'auth-status error';
+}
+
+// ════════════════════════════════════════════════════════════
+//  SHEETS API
+// ════════════════════════════════════════════════════════════
+async function fetchSheet(tabId) {
+  if (!accessToken) throw new Error('Not signed in');
+  const sheet = SHEET_MAP[tabId];
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheet.range)}`;
+  const resp = await fetch(url, { headers });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    if (resp.status === 401 || resp.status === 403) {
+      // Access token expired or revoked — force a clean re-login so we don't silently lose writes
+      forceExpiredLogout('Your Google sign-in expired. Please sign in again to continue.');
+      throw new Error('Session expired');
+    }
+    if (resp.status === 400 && errText.includes('Unable to parse range')) {
+      // Tab doesn't exist — return empty rather than error
+      return [];
+    }
+    throw new Error(`${resp.status}: ${errText.substring(0,200)}`);
+  }
+  const json = await resp.json();
+  return (json.values || []).map((row, idx) => parseRow(row, idx, tabId));
+}
+
+async function fetchSheetMetadata() {
+  if (!accessToken) throw new Error('Not signed in');
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) throw new Error(`Metadata fetch failed: ${resp.status}`);
+  const json = await resp.json();
+  // Map tab name → numeric sheetId (the gid)
+  (json.sheets || []).forEach(s => {
+    const name = s.properties?.title;
+    const sid  = s.properties?.sheetId;
+    Object.keys(SHEET_MAP).forEach(k => {
+      if (SHEET_MAP[k].name === name) SHEET_MAP[k].sheetId = sid;
+    });
+  });
+}
+
+// Fetch the Change Log from a separate spreadsheet. Returns an array of
+// plain row objects keyed by column header — no parseRow/schema overhead.
+async function fetchChangelog() {
+  if (!accessToken) throw new Error('Not signed in');
+  // First tab of the changelog spreadsheet, full used range (columns A:I for 9 headers)
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CHANGELOG_SPREADSHEET_ID}/values/A:I`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) {
+    if (resp.status === 401 || resp.status === 403) {
+      forceExpiredLogout('Your Google sign-in expired. Please sign in again.');
+      throw new Error('Session expired');
+    }
+    // If Christine doesn't have access to this sheet, return empty rather than break the whole UI
+    if (resp.status === 404 || resp.status === 400) {
+      console.warn('[changelog] sheet not accessible:', resp.status);
+      return [];
+    }
+    throw new Error(`${resp.status}: ${(await resp.text()).substring(0,200)}`);
+  }
+  const json = await resp.json();
+  const values = json.values || [];
+  if (values.length === 0) return [];
+  // Skip header row; store each row as an object keyed by our expected column names
+  return values.slice(1).map((row, idx) => ({
+    _idx: idx,
+    _tab: 'changelog',
+    productLevel2: row[0] || '',
+    advertiser:    row[1] || '',
+    ioName:        row[2] || '',
+    lineItemId:    row[3] || '',
+    changeType:    row[4] || '',
+    changedOn:     row[5] || '',
+    oldValue:      row[6] || '',
+    newValue:      row[7] || '',
+    updater:       row[8] || '',
+  }));
+}
+
+// In-memory cache of first-name → Slack user ID, populated from the "Slack" tab
+// of the main spreadsheet. Keys are lowercased so lookups match the mention
+// detection regex behavior.
+let _slackUserMap = {};
+
+// Fetch the Slack mapping tab. Expected columns: A=First Name, B=Slack User ID,
+// C=Notes (optional, ignored). First row is treated as a header and skipped.
+// Silently returns {} if the tab is missing or empty — the app still works,
+// it just won't format mentions with <@U123> syntax.
+async function fetchSlackMap() {
+  if (!accessToken) return {};
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SLACK_MAP_TAB)}!A:C`;
+  try {
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!resp.ok) {
+      // 400 typically means tab doesn't exist — not a real error, just no map yet
+      if (resp.status === 400 || resp.status === 404) {
+        console.info('[slack-map] "' + SLACK_MAP_TAB + '" tab not found; mentions will not include Slack IDs');
+        return {};
+      }
+      throw new Error(`${resp.status}: ${(await resp.text()).substring(0,200)}`);
+    }
+    const json = await resp.json();
+    const values = json.values || [];
+    if (values.length <= 1) return {};
+    const map = {};
+    // Skip header row
+    values.slice(1).forEach(row => {
+      const name = (row[0] || '').trim().toLowerCase();
+      const value = (row[1] || '').trim();
+      if (!name || !value) return;
+      // Special rows starting with _ configure webhook URLs at runtime so
+      // we never have to bake secrets into the source code
+      if (name === '_webhook_screenshots') {
+        SLACK_WEBHOOK_URL = value;
+        return;
+      }
+      if (name === '_webhook_reports') {
+        SLACK_REPORT_WEBHOOK_URL = value;
+        return;
+      }
+      if (name === '_webhook_mentions') {
+        MENTIONS_WEBHOOK_URL = value;
+        return;
+      }
+      // Regular user row: first-name → Slack user ID
+      map[name] = value;
+    });
+    const webhookCount = (SLACK_WEBHOOK_URL ? 1 : 0) + (SLACK_REPORT_WEBHOOK_URL ? 1 : 0) + (MENTIONS_WEBHOOK_URL ? 1 : 0);
+    console.info('[slack-map] loaded', Object.keys(map).length, 'user mappings,', webhookCount, 'of 3 webhooks');
+    return map;
+  } catch(e) {
+    console.warn('[slack-map] fetch failed:', e);
+    return {};
+  }
+}
+
+async function loadAllSheets() {
+  showLoading();
+  try {
+    // First fetch metadata so we know each tab's sheetId — needed for row deletion
+    if (!SHEET_MAP.upcoming.sheetId) await fetchSheetMetadata();
+    // Route each tab to the appropriate fetcher: log tabs pull from a different sheet
+    const results = await Promise.all(TABS.map(t => {
+      if (t.isLog) return fetchChangelog();
+      return fetchSheet(t.id);
+    }));
+    TABS.forEach((t, i) => { DATA[t.id] = results[i]; });
+    // Load the @mention Slack user map in parallel (non-blocking — app still
+    // works if it fails; mentions just won't include real Slack pings)
+    fetchSlackMap().then(map => { _slackUserMap = map; });
+    populateFilters();
+    renderTabs();
+    renderAll();
+    renderStats();
+    syncFloatButtons();
+    startAutoRefresh();
+  } catch(e) {
+    showError(e.message);
+  }
+}
+
+function showLoading() {
+  document.getElementById('mainContent').innerHTML =
+    `<div class="loading"><span class="spinner"></span>Loading from Google Sheets…</div>`;
+}
+
+function showSignInPrompt() {
+  const isFF = navigator.userAgent.toLowerCase().includes('firefox');
+  const btnId = isFF ? 'prompt-signin-ff' : 'prompt-signin';
+  document.getElementById('mainContent').innerHTML = `
+    <div class="loading" style="padding:120px 20px">
+      <div style="font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--ink);letter-spacing:-0.02em;margin-bottom:6px">
+        Sign in to <em style="font-style:italic;color:var(--slate);font-weight:300">continue</em>
+      </div>
+      <div style="font-family:var(--font-body);font-size:14px;color:var(--slate);font-style:normal;margin-bottom:28px">
+        Sightline requires a Google account to view and edit campaigns.
+      </div>
+      <button class="btn btn-primary" id="${btnId}" style="padding:11px 22px;font-size:11px">
+        ${isFF ? 'Sign in with Google (Firefox)' : 'Sign in with Google'}
+      </button>
+    </div>`;
+  document.getElementById(btnId)?.addEventListener('click', isFF ? signInFirefox : signIn);
+}
+
+function showError(msg) {
+  document.getElementById('mainContent').innerHTML =
+    `<div class="loading" style="color:#C4521A">
+       ⚠ ${msg}<br>
+       <small style="font-size:12px;font-style:normal;color:var(--mist)">
+         Check API credentials, sheet sharing, or tab names.
+       </small>
+     </div>`;
+}
+
+// ── AUTO-REFRESH ──
+const REFRESH_INTERVAL = 30000;
+let _refreshTimer = null;
+
+async function silentRefresh() {
+  // Don't refresh while user is editing
+  if (document.querySelector('.date-picker.open, #status-portal[style*="block"], .notes-editor:focus, .gam-editor.open')) return;
+  const label = document.getElementById('syncLabel');
+  if (label) label.textContent = 'Syncing…';
+  try {
+    const results = await Promise.all(TABS.map(t => {
+      if (t.isLog) return fetchChangelog();
+      return fetchSheet(t.id);
+    }));
+    // Refresh the Slack user map in the background so newly-added people become
+    // pingable without a full reload. No await — we don't want map fetch delays
+    // to block the rendered sync timestamp.
+    fetchSlackMap().then(map => { _slackUserMap = map; });
+    let changed = false;
+    // Track which rows changed so we can flash them on re-render (V2 activity indicator)
+    _changedRowKeys.clear();
+    TABS.forEach((t, i) => {
+      const fresh = results[i];
+      const current = DATA[t.id];
+      // Read-only log tabs: no merge needed — just replace
+      if (t.isLog) {
+        if (fresh.length !== current.length) { DATA[t.id] = fresh; changed = true; }
+        else {
+          for (let k = 0; k < fresh.length; k++) {
+            if (JSON.stringify(fresh[k]) !== JSON.stringify(current[k])) {
+              DATA[t.id] = fresh; changed = true; break;
+            }
+          }
+        }
+        return;
+      }
+      // Length mismatch — just replace
+      if (fresh.length !== current.length) {
+        DATA[t.id] = fresh; changed = true; return;
+      }
+      fresh.forEach((row, idx) => {
+        const cur = current[idx];
+        const overrideMap = {
+          startDate: '_startOverride', endDate: '_endOverride',
+          assets: '_assetsOverride', screenshots: '_ssOverride',
+          gamLink: '_gamLinkOverride',
+        };
+        const fields = ['status','assets','startDate','dealId','advertiser','ioName','lineItem','lineItemId','endDate','type','salesperson','screenshots','gamLink'];
+        let rowChanged = false;
+        fields.forEach(f => {
+          if (row[f] === cur[f]) return;
+          const ok = overrideMap[f];
+          if (ok && cur[ok] !== undefined && cur[ok] !== '' && cur[ok] !== null) return;
+          cur[f] = row[f]; changed = true; rowChanged = true;
+        });
+        if (rowChanged) {
+          // Composite key survives index shifts between syncs
+          _changedRowKeys.add(rowChangeKey(cur));
+        }
+      });
+    });
+    const timeStr = new Date().toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+    if (label) label.textContent = `Synced ${timeStr}`;
+    if (changed) { renderAll(); renderStats(); populateFilters(); renderTabs(); syncFloatButtons(); }
+  } catch(e) {
+    if (label) label.textContent = 'Sync paused';
+    console.warn('Sync error:', e);
+  }
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  document.getElementById('syncPill').style.display = 'flex';
+  silentRefresh();
+  _refreshTimer = setInterval(silentRefresh, REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+  if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
+}
+
+// ── WRITE ──
+async function writeCell(tabId, rowIdx, colIdx, value) {
+  if (!accessToken) return;
+  // Pre-flight: if our 10-hour session window has elapsed, force re-login
+  if (isSessionExpired()) {
+    forceExpiredLogout('Session expired after 10 hours. Please sign in again to save changes.');
+    return;
+  }
+  const sheet = SHEET_MAP[tabId];
+  const colLetter = String.fromCharCode(65 + colIdx);
+  const range = `${sheet.name}!${colLetter}${rowIdx + 2}`;
+  showSave('saving');
+  try {
+    const resp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range, majorDimension: 'ROWS', values: [[value]] })
+      }
+    );
+    if (!resp.ok) {
+      if (resp.status === 401 || resp.status === 403) {
+        forceExpiredLogout('Your Google sign-in expired. Please sign in again to save changes.');
+        return;
+      }
+      throw new Error(await resp.text());
+    }
+    showSave('saved');
+  } catch(e) {
+    showSave('error');
+    console.error('Write error:', e);
+  }
+}
+
+// ── SLACK NOTIFICATION ──────────────────────────────────────
+// Fires a multi-line message to the configured Slack channel when a user checks
+// the Screenshots box on a row. Fails silently if the webhook is unreachable or
+// misconfigured — we don't want a broken webhook to block Sheet writes.
+async function sendSlackNotification(row) {
+  if (!SLACK_WEBHOOK_URL) return;
+  const advertiser = (row.advertiser || '—').trim();
+  const ioName     = (row.ioName     || '—').trim();
+  const lineItem   = (row.lineItem   || '—').trim();
+  const dealId     = (row.dealId     || '—').trim();
+  const lineItemId = (row.lineItemId || '—').trim();
+  const startDate  = (row._startOverride || row.startDate || '—').trim();
+  const endDate    = (row._endOverride   || row.endDate   || '—').trim();
+  const type       = (row.type        || '—').trim();
+  const sales      = (row.salesperson || '—').trim();
+  const status     = statusLabel(getStatusKey(row));
+  const gam        = (row._gamLinkOverride !== undefined ? row._gamLinkOverride : row.gamLink || '').trim();
+  const gamLink    = gam ? (gam.startsWith('http') ? gam : 'https://' + gam) : '';
+
+  const lines = [
+    '📸 *Screenshots needed*',
+    `*Advertiser:* ${advertiser}`,
+    `*IO Name:* ${ioName}`,
+    `*Line Item:* ${lineItem}`,
+    `*Deal ID:* ${dealId}`,
+    `*Line Item ID:* ${lineItemId}`,
+    `*Dates:* ${startDate} → ${endDate}`,
+    `*Type:* ${type}`,
+    `*Salesperson:* ${sales}`,
+    `*Status:* ${status}`,
+    gamLink ? `*GAM:* <${gamLink}|Open in GAM>` : '*GAM:* —',
+  ];
+  const text = lines.join('\n');
+
+  try {
+    // Slack Incoming Webhooks don't support CORS preflight, so we use
+    // 'no-cors' mode. The response is opaque (can't read it) but the POST
+    // still delivers the message.
+    await fetch(SLACK_WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    console.info('[slack] screenshots-needed sent for:', advertiser, '/', lineItem);
+  } catch(e) {
+    // Silent failure — sheet write already succeeded, no user-facing error
+    console.warn('[slack] notification failed:', e);
+  }
+}
+
+// ── SLACK REPORT REQUEST ─────────────────────────────────────
+// Fires when a user clicks "Request Report" on a Delivering/Completed row.
+// Sends the full row details to the reports-needed channel. Does NOT touch the Sheet.
+async function sendReportRequest(row) {
+  if (!SLACK_REPORT_WEBHOOK_URL) return false;
+  const advertiser = (row.advertiser || '—').trim();
+  const ioName     = (row.ioName     || '—').trim();
+  const lineItem   = (row.lineItem   || '—').trim();
+  const dealId     = (row.dealId     || '—').trim();
+  const lineItemId = (row.lineItemId || '—').trim();
+  const startDate  = (row._startOverride || row.startDate || '—').trim();
+  const endDate    = (row._endOverride   || row.endDate   || '—').trim();
+  const type       = (row.type        || '—').trim();
+  const sales      = (row.salesperson || '—').trim();
+  const status     = statusLabel(getStatusKey(row));
+  const gam        = (row._gamLinkOverride !== undefined ? row._gamLinkOverride : row.gamLink || '').trim();
+  const gamLink    = gam ? (gam.startsWith('http') ? gam : 'https://' + gam) : '';
+
+  // Multi-line plain message. Slack renders *bold* and <url|text> links.
+  const lines = [
+    '📊 *Report requested*',
+    `*Advertiser:* ${advertiser}`,
+    `*IO Name:* ${ioName}`,
+    `*Line Item:* ${lineItem}`,
+    `*Deal ID:* ${dealId}`,
+    `*Line Item ID:* ${lineItemId}`,
+    `*Dates:* ${startDate} → ${endDate}`,
+    `*Type:* ${type}`,
+    `*Salesperson:* ${sales}`,
+    `*Status:* ${status}`,
+    gamLink ? `*GAM:* <${gamLink}|Open in GAM>` : '*GAM:* —',
+  ];
+  const text = lines.join('\n');
+
+  try {
+    await fetch(SLACK_REPORT_WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    console.info('[slack] report-requested sent for:', advertiser, '/', lineItem);
+    return true;
+  } catch(e) {
+    console.warn('[slack] report request failed:', e);
+    return false;
+  }
+}
+
+// ── SLACK @MENTION PING ─────────────────────────────────────
+// Fires when a *newly-added* @mention is detected on save of an Assets/Notes
+// edit. Each mentioned name is resolved through the Slack map; if found, we
+// format as <@U123> so Slack sends a real user notification. Mentions of the
+// current user are skipped (no self-pings).
+async function sendMentionPing(mentionedName, row, noteText) {
+  if (!MENTIONS_WEBHOOK_URL) return false;
+  const name = (mentionedName || '').toLowerCase();
+  if (!name) return false;
+  // Don't ping yourself
+  if (currentUserFirstName && name === currentUserFirstName) return false;
+
+  const slackId = _slackUserMap[name];
+  const ping = slackId ? `<@${slackId}>` : `@${mentionedName}`;
+  const fromName = currentUserFirstName
+    ? currentUserFirstName.charAt(0).toUpperCase() + currentUserFirstName.slice(1)
+    : 'Someone';
+
+  // Same field shape as the Report Request message so Slack readers see familiar context
+  const advertiser = (row.advertiser || '—').trim();
+  const ioName     = (row.ioName     || '—').trim();
+  const lineItem   = (row.lineItem   || '—').trim();
+  const dealId     = (row.dealId     || '—').trim();
+  const lineItemId = (row.lineItemId || '—').trim();
+  const startDate  = (row._startOverride || row.startDate || '—').trim();
+  const endDate    = (row._endOverride   || row.endDate   || '—').trim();
+  const type       = (row.type        || '—').trim();
+  const sales      = (row.salesperson || '—').trim();
+  const status     = statusLabel(getStatusKey(row));
+  const gam        = (row._gamLinkOverride !== undefined ? row._gamLinkOverride : row.gamLink || '').trim();
+  const gamLink    = gam ? (gam.startsWith('http') ? gam : 'https://' + gam) : '';
+
+  // Truncate long notes so Slack messages stay readable
+  const noteDisplay = (noteText || '').length > 280
+    ? (noteText.substring(0, 280) + '…')
+    : (noteText || '');
+
+  const lines = [
+    `💬 ${ping} — ${fromName} mentioned you`,
+    noteDisplay ? `> ${noteDisplay}` : null,
+    `*Advertiser:* ${advertiser}`,
+    `*IO Name:* ${ioName}`,
+    `*Line Item:* ${lineItem}`,
+    `*Deal ID:* ${dealId}`,
+    `*Line Item ID:* ${lineItemId}`,
+    `*Dates:* ${startDate} → ${endDate}`,
+    `*Type:* ${type}`,
+    `*Salesperson:* ${sales}`,
+    `*Status:* ${status}`,
+    gamLink ? `*GAM:* <${gamLink}|Open in GAM>` : '*GAM:* —',
+  ].filter(Boolean);
+  const text = lines.join('\n');
+
+  try {
+    await fetch(MENTIONS_WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    console.info('[slack] mention ping sent: @' + mentionedName + (slackId ? ' (ID: ' + slackId + ')' : ' (no ID mapped)') + ' on ' + advertiser + ' / ' + lineItem);
+    return true;
+  } catch(e) {
+    console.warn('[slack] mention ping failed:', e);
+    return false;
+  }
+}
+
+// Move a row from one sheet to another by appending + clearing source.
+// Used when status changes — the row moves between tabs.
+async function moveRowBetweenSheets(fromTabId, rowIdx, toTabId, updatedRowValues) {
+  if (!accessToken) return;
+  if (isSessionExpired()) {
+    forceExpiredLogout('Session expired after 10 hours. Please sign in again to save changes.');
+    return false;
+  }
+  const fromSheet = SHEET_MAP[fromTabId];
+  const toSheet   = SHEET_MAP[toTabId];
+  showSave('saving');
+  try {
+    // Make sure we have sheet IDs (needed for deletion)
+    if (fromSheet.sheetId === undefined || toSheet.sheetId === undefined) {
+      await fetchSheetMetadata();
+    }
+
+    // 1. Append to new sheet
+    const appendResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(toSheet.name + '!A:M')}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ majorDimension: 'ROWS', values: [updatedRowValues] })
+      }
+    );
+    if (!appendResp.ok) {
+      if (appendResp.status === 401 || appendResp.status === 403) {
+        forceExpiredLogout('Your Google sign-in expired. Please sign in again to save changes.');
+        return false;
+      }
+      throw new Error('Append failed: ' + await appendResp.text());
+    }
+
+    // 2. Actually DELETE the source row (rather than clear) so no blank line is left
+    // rowIdx is 0-based within the data (header is row 0 in sheet, data starts at row 1)
+    // deleteDimension uses 0-based, [startIndex, endIndex) — row 0 is the header, so our row is rowIdx+1
+    const deleteResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [{
+            deleteDimension: {
+              range: {
+                sheetId: fromSheet.sheetId,
+                dimension: 'ROWS',
+                startIndex: rowIdx + 1,  // +1 skips the header row
+                endIndex:   rowIdx + 2,  // exclusive — deletes exactly one row
+              }
+            }
+          }]
+        })
+      }
+    );
+    if (!deleteResp.ok) throw new Error('Delete failed: ' + await deleteResp.text());
+
+    showSave('saved');
+    return true;
+  } catch(e) {
+    showSave('error');
+    console.error('Move error:', e);
+    return false;
+  }
+}
+
+function showSave(state) {
+  const el = document.getElementById('saveIndicator');
+  el.className = `save-indicator ${state}`;
+  el.textContent = state === 'saving' ? 'Saving…' : state === 'saved' ? '✓ Saved' : '✗ Error';
+  if (state !== 'saving') setTimeout(() => { el.className = 'save-indicator'; }, 2200);
+}
+
+// ════════════════════════════════════════════════════════════
+//  PARSE
+// ════════════════════════════════════════════════════════════
+function parseRow(cols, idx, tabId) {
+  return {
+    _idx: idx,
+    _tab: tabId,
+    status:      cols[COL.status]      || '',
+    assets:      cols[COL.assets]      || '',
+    startDate:   cols[COL.startDate]   || '',
+    dealId:      cols[COL.dealId]      || '',
+    advertiser:  cols[COL.advertiser]  || '',
+    ioName:      cols[COL.ioName]      || '',
+    lineItem:    cols[COL.lineItem]    || '',
+    lineItemId:  cols[COL.lineItemId]  || '',
+    endDate:     cols[COL.endDate]     || '',
+    type:        cols[COL.type]        || '',
+    salesperson: cols[COL.salesperson] || '',
+    screenshots: (cols[COL.screenshots] || '').toString(),
+    gamLink:     cols[COL.gamLink]     || '',
+    // local overrides
+    _startOverride:   '',
+    _endOverride:     '',
+    _assetsOverride:  undefined,
+    _ssOverride:      undefined,
+    _gamLinkOverride: undefined,
+  };
+}
+
+function rowToSheetValues(r) {
+  const arr = [];
+  arr[COL.status]      = r.status;
+  arr[COL.assets]      = r._assetsOverride !== undefined ? r._assetsOverride : r.assets;
+  arr[COL.startDate]   = r._startOverride || r.startDate;
+  arr[COL.dealId]      = r.dealId;
+  arr[COL.advertiser]  = r.advertiser;
+  arr[COL.ioName]      = r.ioName;
+  arr[COL.lineItem]    = r.lineItem;
+  arr[COL.lineItemId]  = r.lineItemId;
+  arr[COL.endDate]     = r._endOverride || r.endDate;
+  arr[COL.type]        = r.type;
+  arr[COL.salesperson] = r.salesperson;
+  arr[COL.screenshots] = isScreenshotChecked(r) ? 'Yes' : '';
+  arr[COL.gamLink]     = r._gamLinkOverride !== undefined ? r._gamLinkOverride : r.gamLink;
+  return arr;
+}
+
+// ════════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════════
+function isScreenshotChecked(r) {
+  if (r._ssOverride !== undefined) return r._ssOverride;
+  const v = (r.screenshots || '').toLowerCase().trim();
+  return v === 'yes' || v === 'true' || v === 'y' || v === '✓' || v === 'x' || v === '1';
+}
+
+function fmtDate(d) {
+  if (!d || !d.trim() || d === '—') return '—';
+  const cleaned = d.replace(/ AL$/, '').trim();
+  let dt;
+  const isoM = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const slashM = cleaned.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (isoM) dt = new Date(parseInt(isoM[1]), parseInt(isoM[2])-1, parseInt(isoM[3]));
+  else if (slashM) {
+    const yr = slashM[3].length === 2 ? 2000 + parseInt(slashM[3]) : parseInt(slashM[3]);
+    dt = new Date(yr, parseInt(slashM[1])-1, parseInt(slashM[2]));
+  } else dt = new Date(cleaned);
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'2-digit' });
+}
+
+function toISODate(s) {
+  if (!s) return '';
+  const cleaned = s.replace(/ AL$/, '').trim();
+  let y, m, d;
+  const isoM = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const slashM = cleaned.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (isoM) [y,m,d] = [parseInt(isoM[1]), parseInt(isoM[2]), parseInt(isoM[3])];
+  else if (slashM) {
+    const yr = slashM[3].length === 2 ? 2000 + parseInt(slashM[3]) : parseInt(slashM[3]);
+    [y,m,d] = [yr, parseInt(slashM[1]), parseInt(slashM[2])];
+  } else {
+    const dt = new Date(cleaned);
+    if (isNaN(dt)) return '';
+    [y,m,d] = [dt.getFullYear(), dt.getMonth()+1, dt.getDate()];
+  }
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function getStatusKey(r) {
+  // Status field drives the pill; falls back to tab
+  const s = (r.status || '').toLowerCase().trim();
+  // 'new' must be checked before 'upcoming' since both live on the Upcoming tab
+  if (s === 'new' || s.includes('new'))  return 'new';
+  if (s.includes('upcoming'))   return 'upcoming';
+  if (s.includes('ready'))      return 'ready';
+  if (s.includes('delivering')) return 'delivering';
+  if (s.includes('paused'))     return 'paused';
+  if (s.includes('cancel'))     return 'cancelled'; // matches cancel, cancelled, canceled
+  if (s.includes('completed') || s.includes('complete') || s.includes('done')) return 'completed';
+  // No status at all? On Upcoming tab, default to 'new'. Elsewhere, match the tab.
+  if (!s && r._tab === 'upcoming') return 'new';
+  return r._tab || 'upcoming';
+}
+
+function statusLabel(key) {
+  return { new:'New', upcoming:'Upcoming', ready:'Ready', delivering:'Delivering', paused:'Paused', completed:'Completed', cancelled:'Cancelled' }[key] || key;
+}
+
+// Status keys that live on the Upcoming tab — changing between them does NOT move the row
+const UPCOMING_STATUSES = new Set(['new', 'upcoming']);
+function statusTabFor(key) {
+  if (UPCOMING_STATUSES.has(key)) return 'upcoming';
+  return key; // ready → ready tab, etc.
+}
+
+// For the Upcoming tab: classify how soon the start date is.
+// Returns 'overdue' (start date already passed), 'soon' (within next 7 days), or null.
+function getUrgency(row) {
+  const raw = row._startOverride || row.startDate;
+  const iso = toISODate(raw);
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  const start = new Date(y, m - 1, d);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((start - now) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0)  return 'overdue';
+  if (diffDays <= 7) return 'soon';
+  return null;
+}
+
+// ════════════════════════════════════════════════════════════
+//  SORT / FILTER
+// ════════════════════════════════════════════════════════════
+function sortRows(rows) {
+  const onUpcoming = activeTab === 'upcoming';
+  // Mentions float works on every campaign tab; Upcoming-specific floats only on Upcoming
+  const anyFloat = floatMentions || (onUpcoming && (floatNew || floatOverdue || floatSoon));
+
+  return [...rows].sort((a, b) => {
+    // Float-to-top layer
+    if (anyFloat) {
+      const skA = getStatusKey(a);
+      const skB = getStatusKey(b);
+      const ua = getUrgency(a);
+      const ub = getUrgency(b);
+      const mA = rowMentionsMe(a);
+      const mB = rowMentionsMe(b);
+
+      const rank = (sk, u, mentionsMe) => {
+        // @me mentions take top priority — most personal/urgent
+        if (floatMentions && mentionsMe)       return 0;
+        if (floatNew     && sk === 'new')      return 1;
+        if (floatOverdue && u  === 'overdue')  return 2;
+        if (floatSoon    && u  === 'soon')     return 3;
+        return 4;
+      };
+      const ra = rank(skA, ua, mA);
+      const rb = rank(skB, ub, mB);
+      if (ra !== rb) return ra - rb;
+    }
+
+    // Regular column sort
+    let va = a[sortCol] || '';
+    let vb = b[sortCol] || '';
+    if (['startDate','endDate'].includes(sortCol)) {
+      va = va ? new Date(toISODate(va)) : new Date(0);
+      vb = vb ? new Date(toISODate(vb)) : new Date(0);
+      if (isNaN(va)) va = new Date(0);
+      if (isNaN(vb)) vb = new Date(0);
+    } else {
+      va = String(va).toLowerCase();
+      vb = String(vb).toLowerCase();
+    }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ?  1 : -1;
+    return 0;
+  });
+}
+
+function filterRows(rows) {
+  return rows.filter(r => {
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      const haystack = [r.advertiser, r.ioName, r.lineItem, r.dealId, r.lineItemId, r.assets, r.type, r.salesperson].join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    if (advFilter   && r.advertiser  !== advFilter)   return false;
+    if (salesFilter && r.salesperson !== salesFilter) return false;
+    if (typeFilter  && r.type        !== typeFilter)  return false;
+    return true;
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  COLUMNS
+// ════════════════════════════════════════════════════════════
+const COLUMNS = [
+  { key: 'status',      label: 'Status' },
+  { key: 'assets',      label: 'Assets / Notes' },
+  { key: 'startDate',   label: 'Start' },
+  { key: 'endDate',     label: 'End' },
+  { key: 'advertiser',  label: 'Advertiser' },
+  { key: 'ioName',      label: 'IO Name' },
+  { key: 'lineItem',    label: 'Line Item' },
+  { key: 'type',        label: 'Type' },
+  { key: 'salesperson', label: 'Sales' },
+  { key: 'dealId',      label: 'Deal ID' },
+  { key: 'screenshots', label: 'Screens' },
+  { key: 'gamLink',     label: 'GAM Link' },
+  { key: 'reportBtn',   label: 'Report', tabs: ['delivering','completed'], sortable: false },
+];
+
+function columnsForTab(tabId) {
+  return COLUMNS.filter(c => !c.tabs || c.tabs.includes(tabId));
+}
+
+// ════════════════════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════════════════════
+function renderTable(rows, tabId) {
+  const filtered = filterRows(sortRows(rows));
+  const cols = columnsForTab(tabId);
+
+  const thHTML = cols.map(c => {
+    if (c.sortable === false) {
+      // Non-sortable column (e.g. action buttons) — no click handler, no arrow
+      return `<th class="no-sort">${c.label}</th>`;
+    }
+    const active = sortCol === c.key ? 'sorted' : '';
+    const arrow = sortCol === c.key ? (sortAsc ? '↑' : '↓') : '↕';
+    return `<th class="${active}" data-col="${c.key}">${c.label}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join('');
+
+  const rowsHTML = filtered.length === 0
+    ? `<tr><td colspan="${cols.length}"><div class="empty-state"><div class="icon">∅</div><p>No items match</p><small>Try adjusting filters or search</small></div></td></tr>`
+    : filtered.map(r => {
+        const sk = getStatusKey(r);
+        const ssChecked = isScreenshotChecked(r);
+        const assetsVal = r._assetsOverride !== undefined ? r._assetsOverride : r.assets;
+        const startDisp = r._startOverride || r.startDate;
+        const endDisp   = r._endOverride   || r.endDate;
+
+        const rowClass = sk === 'new' ? 'row-new' : sk === 'paused' ? 'row-paused' : sk === 'completed' ? 'row-completed' : sk === 'cancelled' ? 'row-cancelled' : '';
+
+        // Urgency pill — only on Upcoming tab
+        const urgency = tabId === 'upcoming' ? getUrgency(r) : null;
+        const urgencyClass = urgency ? ` row-${urgency}` : '';
+        const urgencyPill = urgency
+          ? `<span class="urgency-pill urgency-${urgency}">${urgency === 'overdue' ? 'Overdue' : 'Soon'}</span>`
+          : '';
+
+        const flashClass = _changedRowKeys.has(rowChangeKey(r)) ? ' activity-flash' : '';
+        const mentionsMeClass = rowMentionsMe(r) ? ' row-mentions-me' : '';
+
+        return `<tr class="${rowClass}${urgencyClass}${flashClass}${mentionsMeClass}">
+          <td>
+            <span class="status-pill pill-${sk} edit-trigger" data-idx="${r._idx}" data-tab="${tabId}" title="Click to change status">
+              ${statusLabel(sk)}<span class="edit-hint">✎</span>
+            </span>${urgencyPill}
+          </td>
+          <td class="editable-notes" data-idx="${r._idx}" data-tab="${tabId}" title="Click to edit">
+            <div class="notes-display">${assetsVal ? renderWithMentions(assetsVal.substring(0, 140)) : '<span class="notes-placeholder">Add note…</span>'}</div>
+            <textarea class="notes-editor" rows="3" placeholder="Enter assets or notes…">${escHTML(assetsVal)}</textarea>
+          </td>
+          <td class="date-cell editable-date" data-idx="${r._idx}" data-tab="${tabId}" data-field="startDate">
+            <span class="date-display${startDisp ? '' : ' empty'}">
+              ${fmtDate(startDisp)}<span class="edit-icon">✎</span>
+            </span>
+            <div class="date-picker">
+              <div class="date-picker-label">
+                Start Date
+                <span class="date-clear">Clear</span>
+              </div>
+              <div class="date-fields">
+                <input type="number" class="d-mm" placeholder="MM" min="1" max="12" value="${toISODate(startDisp).split('-')[1] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-dd" placeholder="DD" min="1" max="31" value="${toISODate(startDisp).split('-')[2] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-yyyy" placeholder="YYYY" min="2000" max="2099" value="${toISODate(startDisp).split('-')[0] || ''}">
+              </div>
+              <button class="date-apply">Apply</button>
+            </div>
+          </td>
+          <td class="date-cell editable-date" data-idx="${r._idx}" data-tab="${tabId}" data-field="endDate">
+            <span class="date-display${endDisp ? '' : ' empty'}">
+              ${fmtDate(endDisp)}<span class="edit-icon">✎</span>
+            </span>
+            <div class="date-picker">
+              <div class="date-picker-label">
+                End Date
+                <span class="date-clear">Clear</span>
+              </div>
+              <div class="date-fields">
+                <input type="number" class="d-mm" placeholder="MM" min="1" max="12" value="${toISODate(endDisp).split('-')[1] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-dd" placeholder="DD" min="1" max="31" value="${toISODate(endDisp).split('-')[2] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-yyyy" placeholder="YYYY" min="2000" max="2099" value="${toISODate(endDisp).split('-')[0] || ''}">
+              </div>
+              <button class="date-apply">Apply</button>
+            </div>
+          </td>
+          <td class="advertiser-cell" title="${escHTML(r.advertiser)}">${escHTML(r.advertiser) || '—'}</td>
+          <td class="name-cell" title="${escHTML(r.ioName)}">${escHTML(r.ioName) || '—'}</td>
+          <td class="name-cell" title="${escHTML(r.lineItem)}">${escHTML(r.lineItem) || '—'}</td>
+          <td>${r.type ? `<span class="type-chip">${escHTML(r.type)}</span>` : '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="person-cell">${escHTML(r.salesperson) || '—'}</td>
+          <td class="id-cell">${escHTML(r.dealId) || '—'}</td>
+          <td class="screenshot-cell" data-idx="${r._idx}" data-tab="${tabId}">
+            <span class="ss-check ${ssChecked ? 'checked' : ''}" title="${ssChecked ? 'Screenshots captured' : 'No screenshots yet'}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </span>
+          </td>
+          ${renderGamLinkCell(r, tabId)}
+          ${(tabId === 'delivering' || tabId === 'completed') ? renderReportButtonCell(r, tabId) : ''}
+        </tr>`;
+      }).join('');
+
+  const tabMeta = TABS.find(t => t.id === tabId);
+  const countText = filtered.length === rows.length
+    ? `${rows.length} ${rows.length === 1 ? 'item' : 'items'}`
+    : `${filtered.length} of ${rows.length}`;
+
+  return `
+    <div class="section-head">
+      <div class="section-title-group">
+        <h2 class="section-title">${tabMeta.label} <em>campaigns</em></h2>
+        <span class="section-meta">${countText}</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>${thHTML}</tr></thead>
+          <tbody>${rowsHTML}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function escHTML(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// V2.1: Escape text AND wrap @mentions in highlight spans.
+// If a mention matches the current user's first name, it gets the stronger `.me` style.
+function renderWithMentions(text) {
+  if (!text) return '';
+  const safe = escHTML(text);
+  // Match @word at word boundaries; preserve the char before the @ so we don't
+  // accidentally match email addresses like support@example.com
+  return safe.replace(/(^|[\s(,.!?;:])(@)([a-zA-Z][a-zA-Z0-9_]*)/g, (whole, pre, at, name) => {
+    const isMe = currentUserFirstName && name.toLowerCase() === currentUserFirstName;
+    return `${pre}<span class="at-mention${isMe ? ' me' : ''}">@${name}</span>`;
+  });
+}
+
+// ── CHANGE LOG (read-only second spreadsheet) ─────────────────
+const CHANGELOG_COLUMNS = [
+  { key: 'changedOn',     label: 'Changed On',   cls: 'date-cell' },
+  { key: 'advertiser',    label: 'Advertiser',   cls: 'advertiser-cell' },
+  { key: 'ioName',        label: 'IO Name',      cls: 'name-cell' },
+  { key: 'lineItemId',    label: 'Line Item ID', cls: 'id-cell' },
+  { key: 'productLevel2', label: 'Product',      cls: 'name-cell' },
+  { key: 'changeType',    label: 'Change Type',  cls: '' },
+  { key: 'oldValue',      label: 'Old Value',    cls: 'log-value-cell' },
+  { key: 'newValue',      label: 'New Value',    cls: 'log-value-cell' },
+  { key: 'updater',       label: 'Updater',      cls: 'person-cell' },
+];
+
+function filterLogRows(rows) {
+  return rows.filter(r => {
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      const hay = [r.productLevel2, r.advertiser, r.ioName, r.lineItemId, r.changeType, r.oldValue, r.newValue, r.updater, r.changedOn].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    // Reuse the advertiser filter if it's set (others don't apply to the log)
+    if (advFilter && r.advertiser !== advFilter) return false;
+    return true;
+  });
+}
+
+function sortLogRows(rows) {
+  const col = sortCol;
+  return [...rows].sort((a, b) => {
+    let va = a[col] || '';
+    let vb = b[col] || '';
+    // Date-like field gets date-aware sort
+    if (col === 'changedOn') {
+      const da = new Date(toISODate(va) || va);
+      const db = new Date(toISODate(vb) || vb);
+      va = isNaN(da) ? 0 : da.getTime();
+      vb = isNaN(db) ? 0 : db.getTime();
+    } else {
+      va = String(va).toLowerCase();
+      vb = String(vb).toLowerCase();
+    }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ?  1 : -1;
+    return 0;
+  });
+}
+
+function renderChangelogTable(rows) {
+  const filtered = filterLogRows(sortLogRows(rows));
+
+  const thHTML = CHANGELOG_COLUMNS.map(c => {
+    const active = sortCol === c.key ? 'sorted' : '';
+    const arrow = sortCol === c.key ? (sortAsc ? '↑' : '↓') : '↕';
+    return `<th class="${active}" data-col="${c.key}">${c.label}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join('');
+
+  const rowsHTML = filtered.length === 0
+    ? `<tr><td colspan="${CHANGELOG_COLUMNS.length}"><div class="empty-state"><div class="icon">∅</div><p>No changes to show</p><small>The change log is empty or hasn\u2019t loaded</small></div></td></tr>`
+    : filtered.map(r => {
+        // Fmt date nicely if it parses, else show raw
+        const rawDate = (r.changedOn || '').trim();
+        const iso = toISODate(rawDate);
+        const displayDate = iso ? fmtDate(rawDate) : rawDate || '—';
+        return `<tr>
+          <td class="date-cell">${escHTML(displayDate)}</td>
+          <td class="advertiser-cell" title="${escHTML(r.advertiser)}">${escHTML(r.advertiser) || '—'}</td>
+          <td class="name-cell" title="${escHTML(r.ioName)}">${escHTML(r.ioName) || '—'}</td>
+          <td class="id-cell">${escHTML(r.lineItemId) || '—'}</td>
+          <td class="name-cell" title="${escHTML(r.productLevel2)}">${escHTML(r.productLevel2) || '—'}</td>
+          <td>${r.changeType ? `<span class="type-chip">${escHTML(r.changeType)}</span>` : '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="log-value-cell old" title="${escHTML(r.oldValue)}">${escHTML(r.oldValue) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="log-value-cell new" title="${escHTML(r.newValue)}">${escHTML(r.newValue) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="person-cell">${escHTML(r.updater) || '—'}</td>
+        </tr>`;
+      }).join('');
+
+  const countText = filtered.length === rows.length
+    ? `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}`
+    : `${filtered.length} of ${rows.length}`;
+
+  return `
+    <div class="section-head">
+      <div class="section-title-group">
+        <h2 class="section-title">Change <em>log</em></h2>
+        <span class="section-meta">${countText}</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>${thHTML}</tr></thead>
+          <tbody>${rowsHTML}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderGamLinkCell(r, tabId) {
+  const raw = r._gamLinkOverride !== undefined ? r._gamLinkOverride : r.gamLink;
+  const trimmed = (raw || '').trim();
+  const href = trimmed
+    ? (trimmed.startsWith('http') ? trimmed : 'https://' + trimmed)
+    : '';
+  return `
+    <td class="gam-link-cell" data-idx="${r._idx}" data-tab="${tabId}">
+      <div class="gam-link-row">
+        ${href
+          ? `<a class="gam-view-btn" href="${escHTML(href)}" target="_blank" rel="noopener" title="${escHTML(href)}" onclick="event.stopPropagation()">↗ GAM</a>`
+          : `<span class="gam-empty">—</span>`}
+        <span class="gam-edit-btn gam-trigger" title="Edit GAM link">✎</span>
+      </div>
+      <div class="gam-editor">
+        <label>GAM line-item URL</label>
+        <input type="text" class="gam-input" placeholder="https://admanager.google.com/…" value="${escHTML(trimmed)}">
+        <div class="gam-editor-actions">
+          <button class="gam-save">Save</button>
+          <button class="gam-clear">Clear</button>
+        </div>
+      </div>
+    </td>`;
+}
+
+// Per-session memory of which line items have had a report requested.
+// Cleared on page reload (by spec — user said no persistence).
+// Key includes Deal ID + Line Item ID so a line moving between tabs still
+// keeps its "Requested" state through the session.
+const _reportRequested = new Set();
+function reportKey(r) {
+  return (r.dealId || '') + '|' + (r.lineItemId || '') + '|' + (r.ioName || '') + '|' + (r.lineItem || '');
+}
+function isReportRequested(r) {
+  return _reportRequested.has(reportKey(r));
+}
+
+function renderReportButtonCell(r, tabId) {
+  const requested = isReportRequested(r);
+  return `
+    <td class="report-btn-cell" data-idx="${r._idx}" data-tab="${tabId}">
+      <button class="report-btn${requested ? ' requested' : ''}" ${requested ? 'disabled' : ''} title="${requested ? 'Report already requested this session' : 'Send a report request to Slack'}">
+        ${requested ? '✓ Requested' : '📊 Request Report'}
+      </button>
+    </td>`;
+}
+
+function renderAll() {
+  const rows = DATA[activeTab] || [];
+  const tabMeta = TABS.find(t => t.id === activeTab);
+  const isLog = !!tabMeta?.isLog;
+
+  document.getElementById('mainContent').innerHTML =
+    `<div class="tab-panel">
+       <div class="filter-summary" id="filterSummary"></div>
+       ${isLog ? renderChangelogTable(rows) : renderTable(rows, activeTab)}
+     </div>`;
+
+  // Result count — reuse the same count element; on log tabs, filter differently
+  const filtered = isLog ? filterLogRows(rows) : filterRows(rows);
+  document.getElementById('resultCount').textContent =
+    filtered.length === rows.length ? `${rows.length} results` : `${filtered.length} / ${rows.length}`;
+
+  // Sort handlers
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = true; }
+      userSortedThisTab = true;
+      renderAll();
+    });
+  });
+
+  // Notes editors
+  document.querySelectorAll('td.editable-notes').forEach(td => {
+    const display = td.querySelector('.notes-display');
+    const editor  = td.querySelector('.notes-editor');
+    const idx     = parseInt(td.dataset.idx);
+    const tab     = td.dataset.tab;
+
+    // V2.2: wire @mention autocomplete (idempotent — safe to call repeatedly)
+    attachMentionAutocomplete(editor);
+
+    td.addEventListener('click', e => {
+      if (td.classList.contains('editing')) return;
+      td.classList.add('editing');
+      // V2.2: snapshot existing mentions so we can diff and only ping NEW ones on save
+      td._mentionsBeforeEdit = extractMentions(DATA[tab][idx]);
+      editor.focus();
+      editor.setSelectionRange(editor.value.length, editor.value.length);
+    });
+    editor.addEventListener('blur', () => {
+      const val = editor.value.trim();
+      const row = DATA[tab][idx];
+      row._assetsOverride = val;
+      row.assets = val;
+      // Use renderWithMentions so new @mentions show styled immediately
+      display.innerHTML = val ? renderWithMentions(val.substring(0, 140)) : '<span class="notes-placeholder">Add note…</span>';
+      td.classList.remove('editing');
+      writeCell(tab, idx, COL.assets, val);
+      // V2.1: update the row's mentions-me class live so the row tint turns
+      // on/off immediately if @me was added or removed
+      const tr = td.closest('tr');
+      if (tr) {
+        const mentionsMe = rowMentionsMe(row);
+        tr.classList.toggle('row-mentions-me', mentionsMe);
+      }
+      // Recompute the @Me button count + tab badges since mentions may have changed
+      syncFloatButtons();
+      renderTabs();
+
+      // V2.2: Slack-ping anyone newly @mentioned in this edit.
+      // Compare mentions BEFORE vs AFTER the edit so repeated saves don't
+      // re-spam the same person.
+      const before = td._mentionsBeforeEdit || new Set();
+      const after  = extractMentions(row);
+      const newlyMentioned = [...after].filter(name => !before.has(name));
+      if (newlyMentioned.length > 0) {
+        // Fire pings in parallel; each call handles its own errors + self-skip
+        newlyMentioned.forEach(name => sendMentionPing(name, row, val));
+      }
+      td._mentionsBeforeEdit = null;
+    });
+    editor.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { editor.value = DATA[tab][idx].assets || ''; editor.blur(); }
+      e.stopPropagation();
+    });
+    editor.addEventListener('click', e => e.stopPropagation());
+  });
+
+  // Screenshot checkboxes
+  document.querySelectorAll('.screenshot-cell').forEach(td => {
+    const check = td.querySelector('.ss-check');
+    const idx = parseInt(td.dataset.idx);
+    const tab = td.dataset.tab;
+    check.addEventListener('click', e => {
+      e.stopPropagation();
+      const r = DATA[tab][idx];
+      const newVal = !isScreenshotChecked(r);
+      r._ssOverride = newVal;
+      r.screenshots = newVal ? 'Yes' : '';
+      check.classList.toggle('checked', newVal);
+      writeCell(tab, idx, COL.screenshots, newVal ? 'Yes' : '');
+      // Notify Slack only when the box is being CHECKED (not unchecked).
+      // Fire-and-forget — errors are logged but don't block the UI.
+      if (newVal) sendSlackNotification(r);
+    });
+  });
+
+  // Date pickers (open on click, with smart flip-up)
+  document.querySelectorAll('td.editable-date').forEach(td => {
+    const picker = td.querySelector('.date-picker');
+    const mm = td.querySelector('.d-mm');
+    td.addEventListener('click', e => {
+      if (e.target.closest('.date-picker')) return;
+      e.stopPropagation();
+      document.querySelectorAll('.date-picker.open').forEach(p => {
+        if (p !== picker) { p.classList.remove('open'); p.classList.remove('flip-up'); }
+      });
+      const willOpen = !picker.classList.contains('open');
+      picker.classList.toggle('open');
+      if (willOpen) {
+        // Decide flip direction by comparing space above vs below the trigger cell
+        picker.classList.remove('flip-up');
+        const scroller = td.closest('.table-scroll');
+        const tdRect = td.getBoundingClientRect();
+        const pRect  = picker.getBoundingClientRect();
+        const bottomBound = scroller ? scroller.getBoundingClientRect().bottom : window.innerHeight;
+        const topBound    = scroller ? scroller.getBoundingClientRect().top    : 0;
+        const spaceBelow = bottomBound - tdRect.bottom;
+        const spaceAbove = tdRect.top - topBound;
+        if (spaceBelow < pRect.height + 8 && spaceAbove > spaceBelow) {
+          picker.classList.add('flip-up');
+        }
+        setTimeout(() => mm?.focus(), 40);
+      } else {
+        picker.classList.remove('flip-up');
+      }
+    });
+    picker.addEventListener('click', e => e.stopPropagation());
+  });
+
+  // Clear the V2 "changed row" set so the flash only fires once per sync.
+  // Give the CSS animation time to start before we wipe the markers.
+  if (_changedRowKeys.size) {
+    setTimeout(() => _changedRowKeys.clear(), 3100);
+  }
+
+  // V2: update filter summary bar
+  renderFilterSummary();
+}
+
+function renderTabs() {
+  const bar = document.getElementById('tabBar');
+  const mentionBreakdown = countMyMentionsByTab();
+  bar.innerHTML = TABS.map(t => {
+    const rows = DATA[t.id] || [];
+    const count = rows.length;
+    // Upcoming tab shows a "+N new" badge when there are unreviewed items
+    let newBadge = '';
+    if (t.id === 'upcoming') {
+      const newCount = rows.filter(r => getStatusKey(r) === 'new').length;
+      if (newCount > 0) {
+        newBadge = `<span class="new-count">${newCount} new</span>`;
+      }
+    }
+    // V2.1: @mention badge per tab so you see where mentions live
+    let mentionBadge = '';
+    const mCount = mentionBreakdown[t.id] || 0;
+    if (mCount > 0 && !t.isLog) {
+      mentionBadge = `<span class="tab-mention-badge" title="${mCount} ${mCount === 1 ? 'row mentions' : 'rows mention'} you on ${t.label}">@${mCount}</span>`;
+    }
+    return `<button class="tab-btn ${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}">
+      <span class="indicator ${t.dotClass}"></span>
+      <span>${t.label}</span>
+      <span class="count">${count}</span>
+      ${mentionBadge}
+      ${newBadge}
+    </button>`;
+  }).join('');
+  bar.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeTab = btn.dataset.tab;
+      // Fresh tab = fresh default sort (unless user overrides via column click)
+      userSortedThisTab = false;
+      applyDefaultSort(activeTab);
+      syncFloatButtons();
+      syncFilterUI();
+      renderTabs();
+      renderAll();
+    });
+  });
+}
+
+function syncFloatButtons() {
+  const showUpcomingOnly = activeTab === 'upcoming';
+  const tabMeta = TABS.find(t => t.id === activeTab);
+  const isLog = !!tabMeta?.isLog;
+  // @Me mentions button shows on every campaign tab (except the read-only Change Log)
+  // and only when we actually know who the user is.
+  const showMentions = !isLog && !!currentUserFirstName;
+
+  const btnM = document.getElementById('btnFloatMentions');
+  const btnN = document.getElementById('btnFloatNew');
+  const btnO = document.getElementById('btnFloatOverdue');
+  const btnS = document.getElementById('btnFloatSoon');
+  if (!btnN || !btnO || !btnS || !btnM) return;
+
+  btnM.style.display = showMentions ? 'inline-flex' : 'none';
+  btnN.style.display = showUpcomingOnly ? 'inline-flex' : 'none';
+  btnO.style.display = showUpcomingOnly ? 'inline-flex' : 'none';
+  btnS.style.display = showUpcomingOnly ? 'inline-flex' : 'none';
+
+  btnM.dataset.active = floatMentions ? 'true' : 'false';
+  btnN.dataset.active = floatNew     ? 'true' : 'false';
+  btnO.dataset.active = floatOverdue ? 'true' : 'false';
+  btnS.dataset.active = floatSoon    ? 'true' : 'false';
+
+  // Update the pulsing mention-count badge — shows COUNT ON CURRENT TAB,
+  // with a tooltip listing mentions on other tabs so you know where to look
+  const countEl = document.getElementById('mentionsCount');
+  if (countEl) {
+    const breakdown = countMyMentionsByTab();
+    const hereCount = breakdown[activeTab] || 0;
+    const otherTabs = TABS.filter(t => !t.isLog && t.id !== activeTab && (breakdown[t.id] || 0) > 0);
+
+    // Badge shows the count here; "·n" suffix appears if there are more elsewhere
+    if (hereCount > 0 || otherTabs.length > 0) {
+      let txt = String(hereCount);
+      if (otherTabs.length > 0) {
+        const elsewhere = otherTabs.reduce((s, t) => s + breakdown[t.id], 0);
+        txt = `${hereCount}·+${elsewhere}`;
+      }
+      countEl.textContent = txt;
+      countEl.classList.add('visible');
+    } else {
+      countEl.textContent = '';
+      countEl.classList.remove('visible');
+    }
+
+    // Tooltip: Here: N on [tab], Also: X on Y, Z on W
+    const parts = [];
+    parts.push(`${hereCount} ${hereCount === 1 ? 'mention' : 'mentions'} on ${TABS.find(t => t.id === activeTab)?.label || 'this tab'}`);
+    if (otherTabs.length > 0) {
+      parts.push('Elsewhere: ' + otherTabs.map(t => `${breakdown[t.id]} on ${t.label}`).join(', '));
+    }
+    btnM.title = parts.join(' — ') + (breakdown.total ? '\nClick to float mentioning rows to top' : '');
+  }
+}
+
+function renderStats() {
+  const total = Object.values(DATA).reduce((a, rows) => a + rows.length, 0);
+  const delivering = (DATA.delivering || []).length;
+  const ready      = (DATA.ready || []).length;
+  const upcoming   = (DATA.upcoming || []).length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><div class="num">${delivering}</div><div class="lbl">Delivering</div></div>
+    <div class="stat"><div class="num">${ready}</div><div class="lbl">Ready</div></div>
+    <div class="stat"><div class="num">${upcoming}</div><div class="lbl">Upcoming</div></div>
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Total</div></div>`;
+}
+
+function populateFilters() {
+  const allRows = Object.values(DATA).flat();
+  const advs = [...new Set(allRows.map(r => r.advertiser).filter(Boolean))].sort();
+  const sales = [...new Set(allRows.map(r => r.salesperson).filter(Boolean))].sort();
+  const types = [...new Set(allRows.map(r => r.type).filter(Boolean))].sort();
+
+  fillSelect('advertiserFilter',  advs,  'All Advertisers',  advFilter);
+  fillSelect('salespersonFilter', sales, 'All Salespeople',  salesFilter);
+  fillSelect('typeFilter',        types, 'All Types',        typeFilter);
+  syncFilterUI();
+}
+
+function fillSelect(id, options, allLabel, current) {
+  const sel = document.getElementById(id);
+  const prev = sel.value || current || '';
+  sel.innerHTML = `<option value="">${allLabel}</option>` + options.map(o =>
+    `<option value="${escHTML(o)}" ${o === prev ? 'selected' : ''}>${escHTML(o)}</option>`
+  ).join('');
+  sel.value = prev;
+}
+
+// Sync the "active" state on each filter wrap (shows the × button), the
+// global "Clear all" link visibility, and which filters apply to the current tab.
+function syncFilterUI() {
+  const tabMeta = TABS.find(t => t.id === activeTab);
+  const isLog = !!tabMeta?.isLog;
+
+  const pairs = [
+    ['advertiserFilter',  advFilter],
+    ['salespersonFilter', salesFilter],
+    ['typeFilter',        typeFilter],
+  ];
+  pairs.forEach(([id, value]) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const wrap = sel.closest('.filter-wrap');
+    if (wrap) wrap.classList.toggle('active', !!value);
+  });
+
+  // Salesperson + Type filters don't apply to the Change Log — hide them there.
+  // Advertiser filter is kept because it's shared between campaign data and the log.
+  const salesWrap = document.getElementById('salespersonFilter')?.closest('.filter-wrap');
+  const typeWrap  = document.getElementById('typeFilter')?.closest('.filter-wrap');
+  if (salesWrap) salesWrap.style.display = isLog ? 'none' : '';
+  if (typeWrap)  typeWrap.style.display  = isLog ? 'none' : '';
+
+  const anyActive = !!(searchQ || advFilter || (!isLog && salesFilter) || (!isLog && typeFilter));
+  const clearAll = document.getElementById('clearAllFilters');
+  if (clearAll) clearAll.style.display = anyActive ? 'inline-flex' : 'none';
+}
+
+// V2: Contextual insights bar that appears above the table when filters or
+// search are active. Summarizes what the filtered set actually contains —
+// total count, status breakdown, date range — so the filter is informative,
+// not just a narrowing tool.
+function renderFilterSummary() {
+  const el = document.getElementById('filterSummary');
+  if (!el) return;
+
+  const tabMeta = TABS.find(t => t.id === activeTab);
+  const isLog = !!tabMeta?.isLog;
+
+  // Determine if any filter is actually active
+  const anyActive = !!(searchQ || advFilter || (!isLog && salesFilter) || (!isLog && typeFilter));
+  if (!anyActive) {
+    el.classList.remove('visible');
+    el.innerHTML = '';
+    return;
+  }
+
+  const rows = DATA[activeTab] || [];
+  const filtered = isLog ? filterLogRows(rows) : filterRows(rows);
+
+  // Build a list of active filter chips for context
+  const activeBits = [];
+  if (searchQ)    activeBits.push(`"${searchQ}"`);
+  if (advFilter)  activeBits.push(advFilter);
+  if (!isLog && salesFilter) activeBits.push(salesFilter);
+  if (!isLog && typeFilter)  activeBits.push(typeFilter);
+
+  const parts = [];
+  parts.push(`<span class="fs-label">Filter</span>`);
+  parts.push(`<span class="fs-stat"><span class="num">${filtered.length}</span> of ${rows.length} on ${escHTML(tabMeta?.label || '')}</span>`);
+
+  if (!isLog && filtered.length > 0) {
+    // Status breakdown — count non-zero statuses only, most common first
+    const statusCounts = {};
+    filtered.forEach(r => {
+      const k = getStatusKey(r);
+      statusCounts[k] = (statusCounts[k] || 0) + 1;
+    });
+    const sorted = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 1) {
+      // Only show a breakdown if there's more than one status represented
+      parts.push('<span class="fs-divider"></span>');
+      sorted.forEach(([key, count]) => {
+        parts.push(`<span class="fs-stat"><span class="num">${count}</span> ${statusLabel(key).toLowerCase()}</span>`);
+      });
+    }
+
+    // Date range — earliest start → latest end
+    const dates = filtered
+      .map(r => r._startOverride || r.startDate)
+      .filter(Boolean)
+      .map(d => { const iso = toISODate(d); return iso ? new Date(iso) : null; })
+      .filter(d => d && !isNaN(d));
+    if (dates.length >= 2) {
+      const earliest = new Date(Math.min(...dates));
+      const latest   = new Date(Math.max(...dates));
+      if (earliest.getTime() !== latest.getTime()) {
+        const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+        parts.push('<span class="fs-divider"></span>');
+        parts.push(`<span class="fs-stat">${fmt(earliest)} → ${fmt(latest)}</span>`);
+      }
+    }
+  }
+
+  // Show what filters are active at the end
+  if (activeBits.length > 0) {
+    parts.push('<span class="fs-divider"></span>');
+    parts.push(`<span class="fs-stat" style="color:var(--slate)">Filtering: ${activeBits.map(b => `<span style="color:var(--ink);font-weight:500;margin:0 3px">${escHTML(b)}</span>`).join(' · ')}</span>`);
+  }
+
+  el.innerHTML = parts.join('');
+  el.classList.add('visible');
+}
+
+// ════════════════════════════════════════════════════════════
+//  SETUP PANEL (for credential entry)
+// ════════════════════════════════════════════════════════════
+function showSetupPanel() {
+  document.getElementById('setupPanel').innerHTML = `
+    <div class="setup-panel">
+      <h3>Google Sheets Connection</h3>
+      <p>Paste your API Key and OAuth Client ID from Google Cloud Console. Credentials are stored in your browser's localStorage only.</p>
+      <ol>
+        <li>Go to <strong>console.cloud.google.com</strong> → Create / select a project</li>
+        <li>Enable <strong>Google Sheets API</strong></li>
+        <li>Create an <strong>API Key</strong> (restrict to Sheets API)</li>
+        <li>Create an <strong>OAuth 2.0 Client ID</strong> (Web Application)<br>
+            Add <code>${window.location.origin}</code> to Authorized JavaScript origins</li>
+      </ol>
+      <div class="setup-fields">
+        <input id="inApi"    placeholder="API Key (AIza…)"                               value="${escHTML(API_KEY)}">
+        <input id="inClient" placeholder="OAuth Client ID (…apps.googleusercontent.com)" value="${escHTML(CLIENT_ID)}">
+        <button class="btn btn-primary" onclick="saveConfig()">Save & Connect</button>
+      </div>
+    </div>`;
+}
+
+function saveConfig() {
+  API_KEY   = document.getElementById('inApi').value.trim();
+  CLIENT_ID = document.getElementById('inClient').value.trim();
+  localStorage.setItem('sightline_api_key',   API_KEY);
+  localStorage.setItem('sightline_client_id', CLIENT_ID);
+  document.getElementById('setupPanel').innerHTML = '';
+  initGoogleAuth();
+  signIn();
+}
+
+// ════════════════════════════════════════════════════════════
+//  GLOBAL DELEGATION — runs once, survives re-renders
+// ════════════════════════════════════════════════════════════
+function installGlobalHandlers() {
+  // ── STATUS PORTAL ──
+  const portal = document.getElementById('status-portal');
+  let portalCtx = null; // { idx, tab }
+
+  function showStatusPortal(trigger) {
+    portalCtx = { idx: parseInt(trigger.dataset.idx), tab: trigger.dataset.tab };
+    const row = DATA[portalCtx.tab][portalCtx.idx];
+    const cur = getStatusKey(row);
+    portal.querySelectorAll('.portal-option').forEach(o => {
+      o.classList.toggle('selected', o.dataset.val === cur);
+    });
+
+    // Show first (off-screen) so we can measure actual height
+    portal.style.visibility = 'hidden';
+    portal.style.display = 'block';
+    portal.style.top  = '0px';
+    portal.style.left = '0px';
+
+    const rect = trigger.getBoundingClientRect();
+    const portalRect = portal.getBoundingClientRect();
+    const portalH = portalRect.height;
+    const portalW = portalRect.width;
+    const margin = 8;
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+
+    // Prefer below; flip above if not enough room
+    const spaceBelow = vh - rect.bottom;
+    const spaceAbove = rect.top;
+    let top;
+    if (spaceBelow >= portalH + margin || spaceBelow >= spaceAbove) {
+      top = Math.min(rect.bottom + 6, vh - portalH - margin);
+    } else {
+      top = Math.max(margin, rect.top - portalH - 6);
+    }
+
+    // Clamp horizontally so portal stays fully on screen
+    let left = rect.left;
+    if (left + portalW + margin > vw) left = vw - portalW - margin;
+    if (left < margin) left = margin;
+
+    portal.style.top  = top + 'px';
+    portal.style.left = left + 'px';
+    portal.style.visibility = 'visible';
+  }
+  function hideStatusPortal() {
+    portal.style.display = 'none';
+    portal.style.visibility = '';
+    portalCtx = null;
+  }
+
+  document.addEventListener('click', e => {
+    const trigger = e.target.closest('.edit-trigger');
+    if (!trigger) return;
+    e.stopPropagation();
+    if (portal.style.display === 'block') { hideStatusPortal(); return; }
+    showStatusPortal(trigger);
+  }, true);
+
+  portal.addEventListener('click', async e => {
+    e.stopPropagation();
+    const opt = e.target.closest('.portal-option');
+    if (!opt || !portalCtx) return;
+    const newStatus = opt.dataset.val;
+    const { idx, tab } = portalCtx;
+    hideStatusPortal();
+
+    const row = DATA[tab][idx];
+    const oldStatus = getStatusKey(row);
+    if (newStatus === oldStatus) return;
+
+    // Set the new status locally
+    row.status = statusLabel(newStatus);
+
+    // Determine the destination tab. For most statuses this is the same as the status key,
+    // but 'new' and 'upcoming' both live on the 'upcoming' tab.
+    const destTab = statusTabFor(newStatus);
+
+    // If destination tab differs from current tab, physically move the row between sheets
+    if (destTab !== tab && SHEET_MAP[destTab]) {
+      const updatedValues = rowToSheetValues(row);
+      updatedValues[COL.status] = statusLabel(newStatus);
+
+      // Optimistic local move
+      DATA[tab].splice(idx, 1);
+      DATA[tab].forEach((r, i) => { r._idx = i; }); // reindex
+      const newRow = { ...row, _idx: DATA[destTab].length, _tab: destTab };
+      DATA[destTab].push(newRow);
+      renderTabs();
+      renderStats();
+      renderAll();
+
+      // Persist to sheets
+      const ok = await moveRowBetweenSheets(tab, idx, destTab, updatedValues);
+      if (!ok) {
+        // on error, reload sheets to get ground truth
+        loadAllSheets();
+      } else {
+        // Refresh both affected tabs so _idx values match the sheet exactly.
+        try {
+          const [freshFrom, freshTo] = await Promise.all([
+            fetchSheet(tab),
+            fetchSheet(destTab),
+          ]);
+          DATA[tab] = freshFrom;
+          DATA[destTab] = freshTo;
+          renderTabs();
+          renderStats();
+          renderAll();
+        } catch(_) { /* auto-sync will eventually reconcile */ }
+      }
+    } else {
+      // Same tab — just update the Status column in place
+      writeCell(tab, idx, COL.status, statusLabel(newStatus));
+      renderAll();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.edit-trigger') && !portal.contains(e.target)) hideStatusPortal();
+    if (!e.target.closest('.date-picker') && !e.target.closest('td.editable-date'))
+      document.querySelectorAll('.date-picker.open').forEach(p => p.classList.remove('open'));
+    if (!e.target.closest('.gam-editor') && !e.target.closest('.gam-trigger')) {
+      document.querySelectorAll('.gam-editor.open').forEach(ed => {
+        ed.classList.remove('open');
+        ed.classList.remove('flip-up');
+      });
+    }
+  });
+
+  // ── DATE APPLY (capture phase) ──
+  document.addEventListener('click', e => {
+    if (!e.target.classList.contains('date-apply')) return;
+    e.stopPropagation();
+    const picker = e.target.closest('.date-picker');
+    const td     = e.target.closest('td.editable-date');
+    if (!picker || !td) return;
+    const mm = picker.querySelector('.d-mm').value.trim();
+    const dd = picker.querySelector('.d-dd').value.trim();
+    const yy = picker.querySelector('.d-yyyy').value.trim();
+    if (!mm || !dd || yy.length < 4) return;
+    const iso = `${yy.padStart(4,'0')}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+    const idx = parseInt(td.dataset.idx);
+    const tab = td.dataset.tab;
+    const field = td.dataset.field;
+    const key = field === 'startDate' ? '_startOverride' : '_endOverride';
+    DATA[tab][idx][key] = iso;
+    DATA[tab][idx][field] = iso;
+    const colIdx = field === 'startDate' ? COL.startDate : COL.endDate;
+    writeCell(tab, idx, colIdx, `${mm}/${dd}/${yy}`);
+    picker.classList.remove('open');
+    renderAll();
+  }, true);
+
+  // ── DATE CLEAR (capture phase) ──
+  document.addEventListener('click', e => {
+    if (!e.target.classList.contains('date-clear')) return;
+    e.stopPropagation();
+    const td = e.target.closest('td.editable-date');
+    if (!td) return;
+    const idx = parseInt(td.dataset.idx);
+    const tab = td.dataset.tab;
+    const field = td.dataset.field;
+    const key = field === 'startDate' ? '_startOverride' : '_endOverride';
+    DATA[tab][idx][key] = '';
+    DATA[tab][idx][field] = '';
+    const colIdx = field === 'startDate' ? COL.startDate : COL.endDate;
+    writeCell(tab, idx, colIdx, '');
+    td.querySelector('.date-picker').classList.remove('open');
+    renderAll();
+  }, true);
+
+  // ── DATE FIELD AUTO-ADVANCE ──
+  document.addEventListener('input', e => {
+    if (e.target.classList.contains('d-mm') && e.target.value.length >= 2) {
+      e.target.closest('.date-fields').querySelector('.d-dd').focus();
+    }
+    if (e.target.classList.contains('d-dd') && e.target.value.length >= 2) {
+      e.target.closest('.date-fields').querySelector('.d-yyyy').focus();
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (!e.target.matches('.d-mm, .d-dd, .d-yyyy')) return;
+    e.stopPropagation();
+    e.target.closest('.date-picker').querySelector('.date-apply').click();
+  });
+
+  // ── GAM LINK: open editor on pencil click ──
+  document.addEventListener('click', e => {
+    const trigger = e.target.closest('.gam-trigger');
+    if (!trigger) return;
+    e.stopPropagation();
+    const td = trigger.closest('td.gam-link-cell');
+    const editor = td.querySelector('.gam-editor');
+    if (!editor) return;
+
+    // Close any other open editors/pickers
+    document.querySelectorAll('.gam-editor.open').forEach(ed => {
+      if (ed !== editor) { ed.classList.remove('open'); ed.classList.remove('flip-up'); }
+    });
+    document.querySelectorAll('.date-picker.open').forEach(p => p.classList.remove('open'));
+
+    const willOpen = !editor.classList.contains('open');
+    editor.classList.toggle('open');
+    if (willOpen) {
+      // Flip up when near bottom of scroll area
+      editor.classList.remove('flip-up');
+      const scroller = td.closest('.table-scroll');
+      const tdRect = td.getBoundingClientRect();
+      const edRect = editor.getBoundingClientRect();
+      const bottomBound = scroller ? scroller.getBoundingClientRect().bottom : window.innerHeight;
+      const topBound    = scroller ? scroller.getBoundingClientRect().top    : 0;
+      const spaceBelow = bottomBound - tdRect.bottom;
+      const spaceAbove = tdRect.top - topBound;
+      if (spaceBelow < edRect.height + 8 && spaceAbove > spaceBelow) {
+        editor.classList.add('flip-up');
+      }
+      const input = editor.querySelector('.gam-input');
+      setTimeout(() => { try { input.select(); } catch(_) {} input?.focus(); }, 40);
+    } else {
+      editor.classList.remove('flip-up');
+    }
+  });
+
+  // ── GAM LINK: save button (capture phase to beat bubble) ──
+  document.addEventListener('click', e => {
+    if (!e.target.classList.contains('gam-save')) return;
+    e.stopPropagation();
+    const editor = e.target.closest('.gam-editor');
+    const td     = e.target.closest('td.gam-link-cell');
+    if (!editor || !td) return;
+    const input = editor.querySelector('.gam-input');
+    const val = input.value.trim();
+    const idx = parseInt(td.dataset.idx);
+    const tab = td.dataset.tab;
+    DATA[tab][idx]._gamLinkOverride = val;
+    DATA[tab][idx].gamLink = val;
+    writeCell(tab, idx, COL.gamLink, val);
+    editor.classList.remove('open');
+    editor.classList.remove('flip-up');
+    renderAll();
+  }, true);
+
+  // ── GAM LINK: clear button (capture phase) ──
+  document.addEventListener('click', e => {
+    if (!e.target.classList.contains('gam-clear')) return;
+    e.stopPropagation();
+    const editor = e.target.closest('.gam-editor');
+    const td     = e.target.closest('td.gam-link-cell');
+    if (!editor || !td) return;
+    const idx = parseInt(td.dataset.idx);
+    const tab = td.dataset.tab;
+    DATA[tab][idx]._gamLinkOverride = '';
+    DATA[tab][idx].gamLink = '';
+    writeCell(tab, idx, COL.gamLink, '');
+    editor.classList.remove('open');
+    editor.classList.remove('flip-up');
+    renderAll();
+  }, true);
+
+  // ── GAM LINK: stop propagation inside editor (so clicks don't close it) ──
+  document.addEventListener('click', e => {
+    if (e.target.closest('.gam-editor') && !e.target.matches('.gam-save, .gam-clear')) {
+      e.stopPropagation();
+    }
+  });
+
+  // ── GAM LINK: Enter saves, Escape closes ──
+  document.addEventListener('keydown', e => {
+    if (!e.target.classList.contains('gam-input')) return;
+    if (e.key === 'Enter') {
+      e.stopPropagation();
+      e.target.closest('.gam-editor').querySelector('.gam-save').click();
+    } else if (e.key === 'Escape') {
+      e.stopPropagation();
+      const ed = e.target.closest('.gam-editor');
+      ed.classList.remove('open');
+      ed.classList.remove('flip-up');
+    }
+  });
+
+  // ── REPORT REQUEST BUTTON (Delivering + Completed tabs) ──
+  document.addEventListener('click', async e => {
+    const btn = e.target.closest('.report-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    if (btn.classList.contains('requested') || btn.disabled) return;
+
+    const td  = btn.closest('td.report-btn-cell');
+    const idx = parseInt(td.dataset.idx);
+    const tab = td.dataset.tab;
+    const r   = DATA[tab][idx];
+    if (!r) return;
+
+    // Optimistic UI state: disable, show sending
+    btn.classList.add('sending');
+    btn.disabled = true;
+    btn.textContent = '… Sending';
+
+    const ok = await sendReportRequest(r);
+
+    // Note: with 'no-cors' mode, a fetch error only fires on total network
+    // failure; we otherwise treat it as successful since Slack accepts the POST.
+    btn.classList.remove('sending');
+    if (ok) {
+      _reportRequested.add(reportKey(r));
+      btn.classList.add('requested');
+      btn.textContent = '✓ Requested';
+      btn.title = 'Report already requested this session';
+      // Keep disabled — the requested state is final until page reload
+    } else {
+      // Let the user try again
+      btn.disabled = false;
+      btn.textContent = '📊 Request Report';
+      btn.title = 'Send failed — click to retry';
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+//  V2: KEYBOARD SHORTCUTS
+// ════════════════════════════════════════════════════════════
+// Provides app-wide keyboard navigation so Christine can fly through the UI
+// without touching the mouse. Shortcuts are disabled while typing in inputs
+// (except for a few global ones like Cmd/Ctrl+K and Esc).
+function installKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Always-active shortcuts (work even inside inputs)
+    // Cmd/Ctrl+K → open command palette
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      openCommandPalette();
+      return;
+    }
+    // Esc → context-aware close: palette > editors > filters
+    if (e.key === 'Escape') {
+      if (document.getElementById('cmdPalette')?.classList.contains('open')) {
+        closeCommandPalette();
+        return;
+      }
+      if (document.getElementById('shortcutsHelp')?.classList.contains('open')) {
+        document.getElementById('shortcutsHelp').classList.remove('open');
+        return;
+      }
+      // Close any open editors
+      const anyOpen = document.querySelector('.date-picker.open, .gam-editor.open');
+      if (anyOpen) {
+        document.querySelectorAll('.date-picker.open, .gam-editor.open').forEach(el => {
+          el.classList.remove('open');
+          el.classList.remove('flip-up');
+        });
+        document.getElementById('status-portal').style.display = 'none';
+        return;
+      }
+      // Only clear filters if focused on the body (not inside an input)
+      if (document.activeElement === document.body || document.activeElement?.tagName === 'TABLE') {
+        if (searchQ || advFilter || salesFilter || typeFilter) {
+          document.getElementById('clearAllFilters')?.click();
+        }
+      }
+      return;
+    }
+
+    // Skip all other shortcuts if typing in an input/textarea/select
+    const t = e.target;
+    const isInput = t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable;
+    if (isInput) return;
+
+    // Single-key shortcuts (only when not typing)
+    switch (e.key) {
+      case '/':
+        e.preventDefault();
+        document.getElementById('searchInput')?.focus();
+        break;
+      case '?':
+        e.preventDefault();
+        toggleShortcutsHelp();
+        break;
+      case '1': case '2': case '3': case '4': case '5': case '6': case '7': {
+        const tabIdx = parseInt(e.key) - 1;
+        const tabId = TABS[tabIdx]?.id;
+        if (tabId && tabId !== activeTab) {
+          e.preventDefault();
+          activeTab = tabId;
+          userSortedThisTab = false;
+          applyDefaultSort(activeTab);
+          syncFloatButtons();
+          syncFilterUI();
+          renderTabs();
+          renderAll();
+        }
+        break;
+      }
+    }
+  });
+}
+
+// Shortcuts help overlay
+function toggleShortcutsHelp() {
+  let overlay = document.getElementById('shortcutsHelp');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'shortcutsHelp';
+    overlay.className = 'shortcuts-help';
+    overlay.innerHTML = `
+      <div class="shortcuts-panel">
+        <div class="shortcuts-header">
+          <h2>Keyboard shortcuts</h2>
+          <button class="shortcuts-close" aria-label="Close">×</button>
+        </div>
+        <div class="shortcuts-grid">
+          <div class="shortcuts-section">
+            <h3>Navigation</h3>
+            <div class="shortcut-row"><kbd>1</kbd>–<kbd>7</kbd><span>Jump to tab</span></div>
+            <div class="shortcut-row"><kbd>/</kbd><span>Focus search</span></div>
+            <div class="shortcut-row"><kbd>⌘ K</kbd><span>Command palette</span></div>
+            <div class="shortcut-row"><kbd>Esc</kbd><span>Close / clear</span></div>
+          </div>
+          <div class="shortcuts-section">
+            <h3>Quick filters (in palette)</h3>
+            <div class="shortcut-row"><kbd>new:</kbd><span>Show new items</span></div>
+            <div class="shortcut-row"><kbd>overdue:</kbd><span>Show overdue items</span></div>
+            <div class="shortcut-row"><kbd>soon:</kbd><span>Items starting in 7 days</span></div>
+            <div class="shortcut-row"><kbd>advertiser:</kbd><span>Filter by advertiser</span></div>
+          </div>
+          <div class="shortcuts-section">
+            <h3>Help</h3>
+            <div class="shortcut-row"><kbd>?</kbd><span>Toggle this panel</span></div>
+          </div>
+        </div>
+        <div class="shortcuts-footer">Press <kbd>?</kbd> again or <kbd>Esc</kbd> to close</div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.classList.contains('shortcuts-close')) {
+        overlay.classList.remove('open');
+      }
+    });
+  }
+  overlay.classList.toggle('open');
+}
+
+// ════════════════════════════════════════════════════════════
+//  V2: COMMAND PALETTE
+// ════════════════════════════════════════════════════════════
+// Cmd/Ctrl+K opens a fuzzy-match jump-to-row launcher. Supports plain text
+// search (matches advertiser/IO/line-item/deal-id) and special prefixes:
+//   new:      → quick filter to new rows
+//   overdue:  → quick filter to overdue rows
+//   soon:     → quick filter to items starting within 7 days
+//   advertiser:X → jump-filter to that advertiser
+function openCommandPalette() {
+  let palette = document.getElementById('cmdPalette');
+  if (!palette) {
+    palette = document.createElement('div');
+    palette.id = 'cmdPalette';
+    palette.className = 'cmd-palette';
+    palette.innerHTML = `
+      <div class="cmd-panel">
+        <div class="cmd-input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input type="text" class="cmd-input" id="cmdInput" placeholder="Jump to anything — try 'new:', 'overdue:', or an advertiser name">
+          <kbd class="cmd-hint">esc</kbd>
+        </div>
+        <div class="cmd-results" id="cmdResults"></div>
+        <div class="cmd-footer">
+          <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+          <span><kbd>↵</kbd> select</span>
+          <span><kbd>esc</kbd> close</span>
+        </div>
+      </div>`;
+    document.body.appendChild(palette);
+    palette.addEventListener('click', (e) => {
+      if (e.target === palette) closeCommandPalette();
+    });
+    const input = palette.querySelector('#cmdInput');
+    input.addEventListener('input', renderCommandResults);
+    input.addEventListener('keydown', handleCommandKey);
+  }
+  palette.classList.add('open');
+  const input = palette.querySelector('#cmdInput');
+  input.value = '';
+  _cmdSelected = 0;
+  renderCommandResults();
+  setTimeout(() => input.focus(), 30);
+}
+
+function closeCommandPalette() {
+  document.getElementById('cmdPalette')?.classList.remove('open');
+}
+
+let _cmdSelected = 0;
+let _cmdMatches = [];
+
+function renderCommandResults() {
+  const q = document.getElementById('cmdInput').value.trim();
+  const resultsEl = document.getElementById('cmdResults');
+  if (!resultsEl) return;
+
+  // Quick-filter prefixes
+  const quickFilters = [
+    { prefix: 'new:',       label: 'Show new items',         tab: 'upcoming', action: () => jumpTo('upcoming', { floatKey: 'new' }) },
+    { prefix: 'overdue:',   label: 'Show overdue items',     tab: 'upcoming', action: () => jumpTo('upcoming', { floatKey: 'overdue' }) },
+    { prefix: 'soon:',      label: 'Items starting in 7 days', tab: 'upcoming', action: () => jumpTo('upcoming', { floatKey: 'soon' }) },
+    { prefix: 'delivering:', label: 'Go to Delivering tab',   tab: 'delivering', action: () => jumpTo('delivering') },
+    { prefix: 'ready:',     label: 'Go to Ready tab',        tab: 'ready',    action: () => jumpTo('ready') },
+    { prefix: 'paused:',    label: 'Go to Paused tab',       tab: 'paused',   action: () => jumpTo('paused') },
+    { prefix: 'completed:', label: 'Go to Completed tab',    tab: 'completed', action: () => jumpTo('completed') },
+    { prefix: 'cancelled:', label: 'Go to Cancelled tab',    tab: 'cancelled', action: () => jumpTo('cancelled') },
+    { prefix: 'log:',       label: 'Go to Change Log',       tab: 'changelog', action: () => jumpTo('changelog') },
+  ];
+
+  let matches = [];
+
+  // Empty query → show tab navigation options
+  if (!q) {
+    matches = TABS.map(t => ({
+      type: 'tab',
+      title: `Go to ${t.label}`,
+      subtitle: `${(DATA[t.id] || []).length} items`,
+      action: () => jumpTo(t.id),
+    }));
+  } else {
+    const qLow = q.toLowerCase();
+    // Check quick-filter prefixes
+    const qf = quickFilters.find(f => f.prefix.startsWith(qLow) || qLow.startsWith(f.prefix));
+    if (qf) {
+      matches.push({ type: 'filter', title: qf.label, subtitle: `on ${qf.tab} tab`, action: qf.action });
+    }
+
+    // Advertiser prefix matching
+    const advMatch = qLow.match(/^advertiser:\s*(.*)$/);
+    if (advMatch) {
+      const needle = advMatch[1].toLowerCase();
+      const allAdvs = [...new Set(Object.values(DATA).flat().map(r => r.advertiser).filter(Boolean))];
+      allAdvs
+        .filter(a => a.toLowerCase().includes(needle))
+        .slice(0, 8)
+        .forEach(a => matches.push({
+          type: 'advertiser',
+          title: a,
+          subtitle: `Filter by advertiser`,
+          action: () => { advFilter = a; document.getElementById('advertiserFilter').value = a; syncFilterUI(); renderAll(); closeCommandPalette(); },
+        }));
+    }
+
+    // Free-text row matching across all tabs
+    const allRows = [];
+    TABS.forEach(t => {
+      if (t.isLog) return;
+      (DATA[t.id] || []).forEach(r => allRows.push({ r, tab: t.id, tabLabel: t.label }));
+    });
+    const rowMatches = allRows
+      .filter(({ r }) => {
+        const hay = [r.advertiser, r.ioName, r.lineItem, r.dealId, r.lineItemId].join(' ').toLowerCase();
+        return hay.includes(qLow);
+      })
+      .slice(0, 12);
+    rowMatches.forEach(({ r, tab, tabLabel }) => {
+      matches.push({
+        type: 'row',
+        title: `${r.advertiser || '—'} · ${r.lineItem || r.ioName || '—'}`,
+        subtitle: `${tabLabel} · Deal ${r.dealId || '—'}`,
+        action: () => {
+          searchQ = q; // set search to this query so it's visible on arrival
+          document.getElementById('searchInput').value = q;
+          jumpTo(tab);
+        },
+      });
+    });
+  }
+
+  _cmdMatches = matches;
+  if (_cmdSelected >= matches.length) _cmdSelected = Math.max(0, matches.length - 1);
+
+  resultsEl.innerHTML = matches.length === 0
+    ? `<div class="cmd-empty">No matches.</div>`
+    : matches.map((m, i) => `
+      <div class="cmd-result${i === _cmdSelected ? ' selected' : ''}" data-idx="${i}">
+        <div class="cmd-result-main">
+          <span class="cmd-result-title">${escHTML(m.title)}</span>
+          <span class="cmd-result-sub">${escHTML(m.subtitle)}</span>
+        </div>
+        <span class="cmd-result-type">${m.type}</span>
+      </div>`).join('');
+
+  resultsEl.querySelectorAll('.cmd-result').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      _cmdMatches[idx]?.action();
+    });
+    el.addEventListener('mouseenter', () => {
+      _cmdSelected = parseInt(el.dataset.idx);
+      resultsEl.querySelectorAll('.cmd-result').forEach((r, i) => r.classList.toggle('selected', i === _cmdSelected));
+    });
+  });
+}
+
+function handleCommandKey(e) {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _cmdSelected = Math.min(_cmdSelected + 1, _cmdMatches.length - 1);
+    renderCommandResults();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _cmdSelected = Math.max(_cmdSelected - 1, 0);
+    renderCommandResults();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    _cmdMatches[_cmdSelected]?.action();
+  }
+}
+
+function jumpTo(tabId, opts = {}) {
+  if (tabId && tabId !== activeTab) {
+    activeTab = tabId;
+    userSortedThisTab = false;
+    applyDefaultSort(activeTab);
+  }
+  if (opts.floatKey === 'new')      floatNew = true;
+  if (opts.floatKey === 'overdue')  floatOverdue = true;
+  if (opts.floatKey === 'soon')     floatSoon = true;
+  syncFloatButtons();
+  syncFilterUI();
+  renderTabs();
+  renderAll();
+  closeCommandPalette();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyDefaultSort(activeTab);  // set initial sort based on default tab (Upcoming)
+  renderTabs();
+  renderStats();
+  installGlobalHandlers();
+  installKeyboardShortcuts();
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchQ = e.target.value; syncFilterUI(); renderAll();
+  });
+  document.getElementById('advertiserFilter').addEventListener('change', e => {
+    advFilter = e.target.value; syncFilterUI(); renderAll();
+  });
+  document.getElementById('salespersonFilter').addEventListener('change', e => {
+    salesFilter = e.target.value; syncFilterUI(); renderAll();
+  });
+  document.getElementById('typeFilter').addEventListener('change', e => {
+    typeFilter = e.target.value; syncFilterUI(); renderAll();
+  });
+
+  // Per-filter × clear buttons
+  document.querySelectorAll('.filter-clear').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const sel = document.getElementById(targetId);
+      if (!sel) return;
+      sel.value = '';
+      // Mirror change into state variables
+      if (targetId === 'advertiserFilter')  advFilter   = '';
+      if (targetId === 'salespersonFilter') salesFilter = '';
+      if (targetId === 'typeFilter')        typeFilter  = '';
+      syncFilterUI();
+      renderAll();
+    });
+  });
+
+  // Global "Clear all" — resets search + all three filters at once
+  document.getElementById('clearAllFilters').addEventListener('click', () => {
+    searchQ = '';
+    advFilter = '';
+    salesFilter = '';
+    typeFilter = '';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('advertiserFilter').value = '';
+    document.getElementById('salespersonFilter').value = '';
+    document.getElementById('typeFilter').value = '';
+    syncFilterUI();
+    renderAll();
+  });
+
+  syncFilterUI();
+
+  // Float-to-top toggles
+  document.getElementById('btnFloatMentions').addEventListener('click', () => {
+    floatMentions = !floatMentions;
+    syncFloatButtons();
+    renderAll();
+  });
+  document.getElementById('btnFloatNew').addEventListener('click', () => {
+    floatNew = !floatNew;
+    syncFloatButtons();
+    renderAll();
+  });
+  document.getElementById('btnFloatOverdue').addEventListener('click', () => {
+    floatOverdue = !floatOverdue;
+    syncFloatButtons();
+    renderAll();
+  });
+  document.getElementById('btnFloatSoon').addEventListener('click', () => {
+    floatSoon = !floatSoon;
+    syncFloatButtons();
+    renderAll();
+  });
+  syncFloatButtons();
+
+  // Auth buttons
+  document.getElementById('btnSignin').addEventListener('click', signIn);
+  document.getElementById('btnSigninFF').addEventListener('click', signInFirefox);
+  document.getElementById('btnSignout').addEventListener('click', signOut);
+  document.getElementById('btnReload').addEventListener('click', loadAllSheets);
+
+  // Firefox detection
+  const isFF = navigator.userAgent.toLowerCase().includes('firefox');
+  if (isFF) {
+    document.getElementById('btnSigninFF').style.display = '';
+    document.getElementById('btnSignin').style.display = 'none';
+  }
+
+  // Check for Firefox OAuth redirect
+  if (checkOAuthRedirect()) return;
+
+  // Init — but do NOT load data until signed in
+  initGoogleAuth();
+  showSignInPrompt();
+});
+</script>
+</body>
+</html>
