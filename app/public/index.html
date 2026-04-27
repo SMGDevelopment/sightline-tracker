@@ -1733,6 +1733,127 @@
     height: 14px;
     background: var(--silver);
   }
+
+  /* ═══ CONFIRM DIALOG (for Slack actions) ═══════════════════ */
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 14, 16, 0.45);
+    backdrop-filter: blur(3px);
+    z-index: 10500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: fadeOverlay 0.15s ease;
+  }
+  .confirm-overlay.open { display: flex; }
+  .confirm-panel {
+    width: min(440px, 92vw);
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(14,14,16,0.35), 0 4px 12px rgba(14,14,16,0.15);
+    overflow: hidden;
+    border: 1px solid var(--pearl);
+    animation: slideDown 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .confirm-header {
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--pearl);
+  }
+  .confirm-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .confirm-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .confirm-body {
+    padding: 16px 24px 20px;
+  }
+  .confirm-message {
+    font-size: 13px;
+    color: var(--slate);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .confirm-row-summary {
+    background: var(--mist);
+    border: 1px solid var(--pearl);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 4px;
+  }
+  .confirm-row-summary .crs-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mist-text, #6B7280);
+    margin-bottom: 2px;
+  }
+  .confirm-row-summary .crs-value {
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  .confirm-row-summary .crs-value:last-child { margin-bottom: 0; }
+  .confirm-row-summary .crs-secondary {
+    font-size: 12px;
+    color: var(--slate);
+    font-weight: 400;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 24px 18px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--pearl);
+    background: var(--chalk);
+  }
+  .confirm-btn {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .confirm-btn-cancel {
+    background: var(--white);
+    color: var(--slate);
+    border-color: var(--silver);
+  }
+  .confirm-btn-cancel:hover {
+    background: var(--mist);
+    color: var(--ink);
+  }
+  .confirm-btn-primary {
+    background: var(--accent);
+    color: var(--white);
+  }
+  .confirm-btn-primary:hover {
+    background: var(--accent-hover);
+  }
+  .confirm-btn-primary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 </style>
 </head>
 <body>
@@ -2778,6 +2899,105 @@ async function writeCell(tabId, rowIdx, colIdx, value) {
   }
 }
 
+// ── CONFIRM DIALOG ──────────────────────────────────────────
+// Reusable promise-based confirm dialog for actions that fire Slack messages.
+// Returns true if the user confirms, false if they cancel.
+//
+// Usage:
+//   const ok = await confirmAction({
+//     title: 'Send screenshot notification?',
+//     message: 'A Slack message will be posted to the screenshots channel.',
+//     row: r,                          // optional — shows row summary
+//     confirmLabel: 'Send to Slack',   // optional, defaults to "Confirm"
+//     icon: '📸',                       // optional emoji/text in the icon circle
+//   });
+//   if (!ok) return;
+let _confirmDialog = null;
+function confirmAction(opts) {
+  return new Promise((resolve) => {
+    // Build the dialog on first use
+    if (!_confirmDialog) {
+      _confirmDialog = document.createElement('div');
+      _confirmDialog.className = 'confirm-overlay';
+      _confirmDialog.innerHTML = `
+        <div class="confirm-panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+          <div class="confirm-header">
+            <div class="confirm-icon" id="confirmIcon">?</div>
+            <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+          </div>
+          <div class="confirm-body">
+            <div class="confirm-message" id="confirmMessage"></div>
+            <div class="confirm-row-summary" id="confirmRowSummary" style="display:none"></div>
+          </div>
+          <div class="confirm-actions">
+            <button class="confirm-btn confirm-btn-cancel"  type="button" id="confirmCancel">Cancel</button>
+            <button class="confirm-btn confirm-btn-primary" type="button" id="confirmOK">Confirm</button>
+          </div>
+        </div>`;
+      document.body.appendChild(_confirmDialog);
+    }
+
+    const dlg = _confirmDialog;
+    const titleEl   = dlg.querySelector('#confirmTitle');
+    const iconEl    = dlg.querySelector('#confirmIcon');
+    const msgEl     = dlg.querySelector('#confirmMessage');
+    const sumEl     = dlg.querySelector('#confirmRowSummary');
+    const okBtn     = dlg.querySelector('#confirmOK');
+    const cancelBtn = dlg.querySelector('#confirmCancel');
+
+    titleEl.textContent = opts.title || 'Are you sure?';
+    iconEl.textContent  = opts.icon  || '?';
+    msgEl.textContent   = opts.message || '';
+    okBtn.textContent   = opts.confirmLabel || 'Confirm';
+
+    if (opts.row) {
+      const r = opts.row;
+      const advertiser = (r.advertiser || '—').trim();
+      const ioName     = (r.ioName     || '').trim();
+      const lineItem   = (r.lineItem   || '').trim();
+      const dealId     = (r.dealId     || '').trim();
+      sumEl.style.display = 'block';
+      sumEl.innerHTML = `
+        <div class="crs-label">Advertiser</div>
+        <div class="crs-value">${escHTML(advertiser)}</div>
+        ${ioName   ? `<div class="crs-label">IO Name</div><div class="crs-value crs-secondary">${escHTML(ioName)}</div>`   : ''}
+        ${lineItem ? `<div class="crs-label">Line Item</div><div class="crs-value crs-secondary">${escHTML(lineItem)}</div>` : ''}
+        ${dealId   ? `<div class="crs-label">Deal ID</div><div class="crs-value crs-secondary">${escHTML(dealId)}</div>`     : ''}
+      `;
+    } else {
+      sumEl.style.display = 'none';
+    }
+
+    let resolved = false;
+    function cleanup(result) {
+      if (resolved) return;
+      resolved = true;
+      dlg.classList.remove('open');
+      okBtn.removeEventListener('click', onOK);
+      cancelBtn.removeEventListener('click', onCancel);
+      dlg.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey, true);
+      resolve(result);
+    }
+    function onOK()     { cleanup(true); }
+    function onCancel() { cleanup(false); }
+    function onBackdrop(e) { if (e.target === dlg) cleanup(false); }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cleanup(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); cleanup(true); }
+    }
+
+    okBtn.addEventListener('click', onOK);
+    cancelBtn.addEventListener('click', onCancel);
+    dlg.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey, true);
+
+    dlg.classList.add('open');
+    // Focus the primary button so Enter confirms
+    setTimeout(() => okBtn.focus(), 50);
+  });
+}
+
 // ── SLACK NOTIFICATION ──────────────────────────────────────
 // Fires a multi-line message to the configured Slack channel when a user checks
 // the Screenshots box on a row. Fails silently if the webhook is unreachable or
@@ -3223,11 +3443,11 @@ const COLUMNS = [
   { key: 'startDate',   label: 'Start' },
   { key: 'endDate',     label: 'End' },
   { key: 'advertiser',  label: 'Advertiser' },
+  { key: 'dealId',      label: 'Deal ID' },
   { key: 'ioName',      label: 'IO Name' },
   { key: 'lineItem',    label: 'Line Item' },
   { key: 'type',        label: 'Type' },
   { key: 'salesperson', label: 'Sales' },
-  { key: 'dealId',      label: 'Deal ID' },
   { key: 'screenshots', label: 'Screens' },
   { key: 'gamLink',     label: 'GAM Link' },
   { key: 'reportBtn',   label: 'Report', tabs: ['delivering','completed'], sortable: false },
@@ -3324,11 +3544,11 @@ function renderTable(rows, tabId) {
             </div>
           </td>
           <td class="advertiser-cell" title="${escHTML(r.advertiser)}">${escHTML(r.advertiser) || '—'}</td>
+          <td class="id-cell">${escHTML(r.dealId) || '—'}</td>
           <td class="name-cell" title="${escHTML(r.ioName)}">${escHTML(r.ioName) || '—'}</td>
           <td class="name-cell" title="${escHTML(r.lineItem)}">${escHTML(r.lineItem) || '—'}</td>
           <td>${r.type ? `<span class="type-chip">${escHTML(r.type)}</span>` : '<span style="color:var(--fog)">—</span>'}</td>
           <td class="person-cell">${escHTML(r.salesperson) || '—'}</td>
-          <td class="id-cell">${escHTML(r.dealId) || '—'}</td>
           <td class="screenshot-cell" data-idx="${r._idx}" data-tab="${tabId}">
             <span class="ss-check ${ssChecked ? 'checked' : ''}" title="${ssChecked ? 'Screenshots captured' : 'No screenshots yet'}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -3614,10 +3834,21 @@ function renderAll() {
     const check = td.querySelector('.ss-check');
     const idx = parseInt(td.dataset.idx);
     const tab = td.dataset.tab;
-    check.addEventListener('click', e => {
+    check.addEventListener('click', async e => {
       e.stopPropagation();
       const r = DATA[tab][idx];
       const newVal = !isScreenshotChecked(r);
+      // Confirm before sending Slack message — only on CHECK (uncheck doesn't fire Slack)
+      if (newVal) {
+        const ok = await confirmAction({
+          title: 'Notify Slack about screenshots?',
+          icon: '📸',
+          message: 'Marking this row as having screenshots will post a notification to Slack. Continue?',
+          row: r,
+          confirmLabel: 'Send to Slack',
+        });
+        if (!ok) return;
+      }
       r._ssOverride = newVal;
       r.screenshots = newVal ? 'Yes' : '';
       check.classList.toggle('checked', newVal);
@@ -4241,17 +4472,27 @@ function installGlobalHandlers() {
     const r   = DATA[tab][idx];
     if (!r) return;
 
+    // Confirm before sending — protects against accidental clicks
+    const ok = await confirmAction({
+      title: 'Send report request to Slack?',
+      icon: '📊',
+      message: 'A report request will be posted to the reports Slack channel. Continue?',
+      row: r,
+      confirmLabel: 'Send Request',
+    });
+    if (!ok) return;
+
     // Optimistic UI state: disable, show sending
     btn.classList.add('sending');
     btn.disabled = true;
     btn.textContent = '… Sending';
 
-    const ok = await sendReportRequest(r);
+    const sent = await sendReportRequest(r);
 
     // Note: with 'no-cors' mode, a fetch error only fires on total network
     // failure; we otherwise treat it as successful since Slack accepts the POST.
     btn.classList.remove('sending');
-    if (ok) {
+    if (sent) {
       _reportRequested.add(reportKey(r));
       btn.classList.add('requested');
       btn.textContent = '✓ Requested';
