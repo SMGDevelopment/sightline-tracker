@@ -1,0 +1,87 @@
+name: Feature Deploy
+
+on:
+  push:
+    branches:
+      - "feature/**"
+  delete:
+
+concurrency:
+  group: feature-${{ github.ref }}
+  cancel-in-progress: false   # Never cancel an in-flight deploy.
+
+jobs:
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required for OIDC authentication to AWS.
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Derive stage and domain
+        id: vars
+        run: |
+          # Extract the part after feature/ and slugify it (lowercase, replace non-alphanumeric with -)
+          FEATURE="${GITHUB_REF#refs/heads/feature/}"
+          STAGE=$(echo "$FEATURE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')
+          DOMAIN="${STAGE}-web-app.militarytimes.com"
+          echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
+          echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy feature stack
+        run: npx sst deploy --stage "${{ steps.vars.outputs.stage }}"
+        env:
+          NODE_ENV: production
+          DEPLOY_DOMAIN: ${{ steps.vars.outputs.domain }}
+
+  destroy:
+    if: github.event_name == 'delete' && startsWith(github.event.ref, 'feature/')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Derive stage
+        id: vars
+        run: |
+          FEATURE="${{ github.event.ref }}"
+          FEATURE="${FEATURE#feature/}"
+          STAGE=$(echo "$FEATURE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')
+          echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Destroy feature stack
+        run: npx sst remove --stage "${{ steps.vars.outputs.stage }}"

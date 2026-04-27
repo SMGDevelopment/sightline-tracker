@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.sst/
+dist/
+.env
+.env.local
+.env.*.local
+app/.env
+app/.env.local
+app/.env.*.local
+*.tsbuildinfo
+
+# SST secrets (never commit)
+.sst/secrets

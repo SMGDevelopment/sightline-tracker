@@ -1,0 +1,21 @@
+{
+  "name": "web-app-template",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "app",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "sst dev",
+    "deploy": "sst deploy --stage production",
+    "remove": "sst remove",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p app/tsconfig.json && tsc --noEmit -p packages/functions/tsconfig.json"
+  },
+  "devDependencies": {
+    "aws-cdk-lib": "2.188.0",
+    "constructs": "10.4.2",
+    "sst": "3.x",
+    "typescript": "^5.7.2"
+  }
+}
