@@ -756,6 +756,7 @@
   .tab-dot-paused     { background: var(--st-paused); }
   .tab-dot-completed  { background: var(--st-completed); }
   .tab-dot-cancelled  { background: var(--st-cancelled); }
+  .tab-dot-newsletters{ background: #7B6FCE; }
   .tab-dot-changelog  { background: var(--accent); }
 
   /* ═══ URGENCY PILLS (Upcoming tab only) ═══ */
@@ -1734,6 +1735,180 @@
     background: var(--silver);
   }
 
+  /* ═══ NEWSLETTER TAB ═══════════════════════════════════════ */
+  td.nl-editable {
+    cursor: text;
+    position: relative;
+    transition: background 0.12s;
+  }
+  td.nl-editable:hover {
+    background: var(--accent-soft);
+  }
+  td.nl-editable.nl-cell-editing {
+    background: var(--white);
+    padding: 4px;
+  }
+  .nl-inline-input {
+    width: 100%;
+    border: 1.5px solid var(--accent);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--white);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  td.nl-editable-date {
+    cursor: pointer;
+    position: relative;
+  }
+  td.nl-editable-date:hover {
+    background: var(--accent-soft);
+  }
+  td.nl-editable-date .nl-date-picker {
+    /* Inherits .date-picker styles already in the file */
+  }
+  td.nl-status-cell {
+    font-weight: 500;
+    color: var(--slate);
+  }
+  td.nl-qty-cell {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink);
+    text-align: right;
+  }
+
+  /* "Date Launched" column — monospace + muted; shipped rows get a small green accent */
+  td.nl-date-launched .nl-date-display {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--mist-text, #6B7280);
+  }
+  td.nl-date-launched.is-launched .nl-date-display {
+    color: #2F8F5E;
+    font-weight: 600;
+  }
+
+  /* Newsletter status multi-select dropdown */
+  .nl-status-filter-wrap {
+    position: relative;
+  }
+  .nl-status-btn {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    min-width: 140px;
+  }
+  .nl-status-btn:hover {
+    border-color: var(--slate);
+  }
+  .nl-status-caret {
+    margin-left: auto;
+    font-size: 9px;
+    color: var(--slate);
+    transition: transform 0.15s;
+  }
+  .nl-status-btn[aria-expanded="true"] .nl-status-caret {
+    transform: rotate(180deg);
+  }
+  .nl-status-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 240px;
+    max-width: 320px;
+    background: var(--white);
+    border: 1px solid var(--silver);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 32px rgba(14,14,16,0.14), 0 2px 8px rgba(14,14,16,0.06);
+    z-index: 200;
+    overflow: hidden;
+    animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .nl-status-dropdown.open { display: block; }
+  .nl-status-options {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+  .nl-status-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink);
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .nl-status-opt:hover {
+    background: var(--mist);
+  }
+  .nl-status-opt input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: var(--accent);
+    margin: 0;
+    flex-shrink: 0;
+  }
+  .nl-status-opt .nl-status-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .nl-status-opt .nl-status-count {
+    color: var(--mist-text, #6B7280);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .nl-status-controls {
+    display: flex;
+    gap: 4px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--pearl);
+    background: var(--chalk);
+  }
+  .nl-status-mini {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--silver);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--slate);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .nl-status-mini:hover {
+    background: var(--white);
+    color: var(--ink);
+    border-color: var(--slate);
+  }
+  .nl-status-empty {
+    padding: 14px;
+    font-size: 12px;
+    color: var(--mist-text, #6B7280);
+    text-align: center;
+    font-style: italic;
+  }
+  /* Active state indication */
+  .nl-status-filter-wrap.active .nl-status-btn {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-hover);
+  }
+
   /* ═══ CONFIRM DIALOG (for Slack actions) ═══════════════════ */
   .confirm-overlay {
     position: fixed;
@@ -1917,6 +2092,21 @@
     </select>
     <button type="button" class="filter-clear" data-target="typeFilter" title="Clear filter" aria-label="Clear type filter">×</button>
   </div>
+  <!-- Newsletter status: shown only on the Newsletters tab; multi-select with checkboxes -->
+  <div class="filter-wrap nl-status-filter-wrap" id="nlStatusFilterWrap" style="display:none">
+    <button type="button" class="filter-select nl-status-btn" id="nlStatusBtn" aria-haspopup="listbox" aria-expanded="false">
+      <span id="nlStatusBtnLabel">All Statuses</span>
+      <span class="nl-status-caret">▾</span>
+    </button>
+    <button type="button" class="filter-clear" id="nlStatusClear" title="Show all statuses" aria-label="Clear status filter">×</button>
+    <div class="nl-status-dropdown" id="nlStatusDropdown" role="listbox" aria-label="Filter newsletter statuses">
+      <div class="nl-status-options" id="nlStatusOptions"></div>
+      <div class="nl-status-controls">
+        <button type="button" class="nl-status-mini" id="nlStatusSelectAll">Select all</button>
+        <button type="button" class="nl-status-mini" id="nlStatusClearAll">Clear all</button>
+      </div>
+    </div>
+  </div>
   <button type="button" class="clear-all-link" id="clearAllFilters" style="display:none" title="Reset all filters and search">Clear all</button>
   <div class="controls-right">
     <button class="btn btn-float btn-mentions" id="btnFloatMentions" data-key="mentions" style="display:none" title="Float rows that mention you to top">
@@ -1955,6 +2145,29 @@ const SPREADSHEET_ID = '1edU9oD_HT3Rf_dMuaWdVJxgAK_-auhGy1iGLKKlZ-Fk';
 
 // Separate read-only spreadsheet for the Change Log tab
 const CHANGELOG_SPREADSHEET_ID = '1ZZhXpmq5HRoinfES8JXm6HPmC_BLvHF0y7bBnz-jjY4';
+
+// Newsletter tab — pulls from its own spreadsheet (flat list, no status workflow)
+// Headers (row 1):
+//   A: ID | B: Sales Order Name | C: Status | D: Sales Rep | E: Sales Line Item Name
+//   F: Start | G: End | H: Advertiser Name | I: Quantity | J: Sales Stage
+//   K: Workflow Status | L: Contact | M: Date Launched
+const NEWSLETTER_SPREADSHEET_ID = '1F1y_TmUkMszUMN-_HOelOUnOnJ0RaWPI-tsy7YQM_ko';
+const NEWSLETTER_TAB_NAME       = 'Newsletters';
+const NL_COL = {
+  id:            0,  // A — read-only
+  salesOrder:    1,  // B
+  status:        2,  // C
+  salesRep:      3,  // D
+  lineItemName:  4,  // E
+  startDate:     5,  // F
+  endDate:       6,  // G
+  advertiser:    7,  // H
+  quantity:      8,  // I
+  salesStage:    9,  // J
+  workflow:      10, // K
+  contact:       11, // L
+  dateLaunched:  12, // M — populated = pill suppressed
+};
 
 // Webhook URLs are loaded at runtime from the "Slack" tab of the main sheet.
 // To avoid checking secrets into source control, the HTML ships with no
@@ -2005,13 +2218,14 @@ const SHEET_MAP = {
 };
 
 const TABS = [
-  { id: 'upcoming',   label: 'Upcoming',   dotClass: 'tab-dot-upcoming' },
-  { id: 'ready',      label: 'Ready',      dotClass: 'tab-dot-ready' },
-  { id: 'delivering', label: 'Delivering', dotClass: 'tab-dot-delivering' },
-  { id: 'paused',     label: 'Paused',     dotClass: 'tab-dot-paused' },
-  { id: 'completed',  label: 'Completed',  dotClass: 'tab-dot-completed' },
-  { id: 'cancelled',  label: 'Cancelled',  dotClass: 'tab-dot-cancelled' },
-  { id: 'changelog',  label: 'Change Log', dotClass: 'tab-dot-changelog', isLog: true },
+  { id: 'upcoming',    label: 'Upcoming',    dotClass: 'tab-dot-upcoming' },
+  { id: 'ready',       label: 'Ready',       dotClass: 'tab-dot-ready' },
+  { id: 'delivering',  label: 'Delivering',  dotClass: 'tab-dot-delivering' },
+  { id: 'paused',      label: 'Paused',      dotClass: 'tab-dot-paused' },
+  { id: 'completed',   label: 'Completed',   dotClass: 'tab-dot-completed' },
+  { id: 'cancelled',   label: 'Cancelled',   dotClass: 'tab-dot-cancelled' },
+  { id: 'newsletters', label: 'Newsletters', dotClass: 'tab-dot-newsletters', isNewsletter: true },
+  { id: 'changelog',   label: 'Change Log',  dotClass: 'tab-dot-changelog',   isLog: true },
 ];
 
 // Reused from Sunset tracker
@@ -2085,7 +2299,7 @@ function rowMentionsMe(row) {
 function countMyMentionsByTab() {
   const out = { total: 0 };
   TABS.forEach(t => {
-    if (t.isLog) { out[t.id] = 0; return; }
+    if (t.isLog || t.isNewsletter) { out[t.id] = 0; return; }
     const rows = DATA[t.id] || [];
     let n = 0;
     if (currentUserFirstName) {
@@ -2155,7 +2369,7 @@ function buildMentionCandidates(query) {
   // someone you've used before even if they're not in the Slack tab
   const seen = new Set();
   TABS.forEach(t => {
-    if (t.isLog) return;
+    if (t.isLog || t.isNewsletter) return;
     (DATA[t.id] || []).forEach(r => {
       extractMentions(r).forEach(m => seen.add(m));
     });
@@ -2337,6 +2551,12 @@ let searchQ    = '';
 let advFilter  = '';
 let salesFilter= '';
 let typeFilter = '';
+// Newsletter-only multi-select status filter. Tracks the set of UNCHECKED
+// statuses (lowercased) — empty set means "show everything". On first
+// successful load we seed this with anything containing "archive" or "cancel"
+// so those default to hidden. Not persisted across reloads (intentional).
+let nlStatusHidden = new Set();
+let nlStatusSeeded = false;  // flag so we only auto-hide archived/cancelled once per page load
 let tokenClient = null;
 
 const DATA = { upcoming: [], ready: [], delivering: [], paused: [], completed: [], cancelled: [], changelog: [] };
@@ -2668,6 +2888,83 @@ async function fetchChangelog() {
   }));
 }
 
+// Fetch the Newsletter list from its dedicated spreadsheet. Returns an array
+// of editable row objects. Like changelog, this hits a different spreadsheet
+// than the main campaign sheets but unlike changelog, rows can be edited.
+async function fetchNewsletters() {
+  if (!accessToken) throw new Error('Not signed in');
+  const range = `${NEWSLETTER_TAB_NAME}!A2:M`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${NEWSLETTER_SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) {
+    if (resp.status === 401 || resp.status === 403) {
+      forceExpiredLogout('Your Google sign-in expired. Please sign in again.');
+      throw new Error('Session expired');
+    }
+    // If the user doesn't have access or tab doesn't exist, return empty rather than break the whole UI
+    if (resp.status === 404 || resp.status === 400) {
+      console.warn('[newsletters] sheet not accessible:', resp.status);
+      return [];
+    }
+    throw new Error(`${resp.status}: ${(await resp.text()).substring(0,200)}`);
+  }
+  const json = await resp.json();
+  const values = json.values || [];
+  return values.map((row, idx) => ({
+    _idx: idx,
+    _tab: 'newsletters',
+    id:           row[NL_COL.id]           || '',
+    salesOrder:   row[NL_COL.salesOrder]   || '',
+    status:       row[NL_COL.status]       || '',
+    salesRep:     row[NL_COL.salesRep]     || '',
+    lineItemName: row[NL_COL.lineItemName] || '',
+    startDate:    row[NL_COL.startDate]    || '',
+    endDate:      row[NL_COL.endDate]      || '',
+    advertiser:   row[NL_COL.advertiser]   || '',
+    quantity:     row[NL_COL.quantity]     || '',
+    salesStage:   row[NL_COL.salesStage]   || '',
+    workflow:     row[NL_COL.workflow]     || '',
+    contact:      row[NL_COL.contact]      || '',
+    dateLaunched: row[NL_COL.dateLaunched] || '',
+    // Local edit overrides — preserved through silent refresh
+    _overrides:   {},
+  }));
+}
+
+// Write a single cell back to the Newsletter spreadsheet. Mirrors writeCell
+// but targets NEWSLETTER_SPREADSHEET_ID and the fixed Newsletters tab name.
+async function writeNewsletterCell(rowIdx, colIdx, value) {
+  if (!accessToken) return;
+  if (isSessionExpired()) {
+    forceExpiredLogout('Session expired after 10 hours. Please sign in again to save changes.');
+    return;
+  }
+  const colLetter = String.fromCharCode(65 + colIdx);
+  const range = `${NEWSLETTER_TAB_NAME}!${colLetter}${rowIdx + 2}`;
+  showSave('saving');
+  try {
+    const resp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${NEWSLETTER_SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range, majorDimension: 'ROWS', values: [[value]] })
+      }
+    );
+    if (!resp.ok) {
+      if (resp.status === 401 || resp.status === 403) {
+        forceExpiredLogout('Your Google sign-in expired. Please sign in again to save changes.');
+        return;
+      }
+      throw new Error(await resp.text());
+    }
+    showSave('saved');
+  } catch(e) {
+    showSave('error');
+    console.error('Newsletter write error:', e);
+  }
+}
+
 // In-memory cache of first-name → Slack user ID, populated from the "Slack" tab
 // of the main spreadsheet. Keys are lowercased so lookups match the mention
 // detection regex behavior.
@@ -2733,9 +3030,13 @@ async function loadAllSheets() {
     // Route each tab to the appropriate fetcher: log tabs pull from a different sheet
     const results = await Promise.all(TABS.map(t => {
       if (t.isLog) return fetchChangelog();
+      if (t.isNewsletter) return fetchNewsletters();
       return fetchSheet(t.id);
     }));
     TABS.forEach((t, i) => { DATA[t.id] = results[i]; });
+    // Seed the default-hidden statuses ("archive*", "cancel*") once we
+    // actually have newsletter data to inspect.
+    seedNlStatusDefaults();
     // Load the @mention Slack user map in parallel (non-blocking — app still
     // works if it fails; mentions just won't include real Slack pings)
     fetchSlackMap().then(map => { _slackUserMap = map; });
@@ -2789,12 +3090,13 @@ let _refreshTimer = null;
 
 async function silentRefresh() {
   // Don't refresh while user is editing
-  if (document.querySelector('.date-picker.open, #status-portal[style*="block"], .notes-editor:focus, .gam-editor.open')) return;
+  if (document.querySelector('.date-picker.open, #status-portal[style*="block"], .notes-editor:focus, .gam-editor.open, .nl-cell-editing')) return;
   const label = document.getElementById('syncLabel');
   if (label) label.textContent = 'Syncing…';
   try {
     const results = await Promise.all(TABS.map(t => {
       if (t.isLog) return fetchChangelog();
+      if (t.isNewsletter) return fetchNewsletters();
       return fetchSheet(t.id);
     }));
     // Refresh the Slack user map in the background so newly-added people become
@@ -2817,6 +3119,20 @@ async function silentRefresh() {
             }
           }
         }
+        return;
+      }
+      // Newsletter tab: merge with preserved local _overrides (in-flight edits)
+      if (t.isNewsletter) {
+        if (fresh.length !== current.length) { DATA[t.id] = fresh; changed = true; return; }
+        for (let k = 0; k < fresh.length; k++) {
+          // Carry over any local override map from the current row
+          fresh[k]._overrides = current[k]?._overrides || {};
+          // Detect any actual data change for activity-flash
+          const a = { ...fresh[k], _overrides: undefined, _idx: undefined };
+          const b = { ...current[k], _overrides: undefined, _idx: undefined };
+          if (JSON.stringify(a) !== JSON.stringify(b)) changed = true;
+        }
+        DATA[t.id] = fresh;
         return;
       }
       // Length mismatch — just replace
@@ -2846,6 +3162,8 @@ async function silentRefresh() {
     });
     const timeStr = new Date().toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
     if (label) label.textContent = `Synced ${timeStr}`;
+    // If newsletter data just arrived for the first time, seed default-hidden statuses
+    seedNlStatusDefaults();
     if (changed) { renderAll(); renderStats(); populateFilters(); renderTabs(); syncFloatButtons(); }
   } catch(e) {
     if (label) label.textContent = 'Sync paused';
@@ -3698,6 +4016,291 @@ function renderChangelogTable(rows) {
     </div>`;
 }
 
+// ── NEWSLETTER TAB ────────────────────────────────────────────
+// Flat editable list of newsletter line items from a separate spreadsheet.
+// No status workflow — every row stays put; users just edit fields in place.
+const NEWSLETTER_COLUMNS = [
+  { key: 'id',           label: 'ID',                 cls: 'id-cell',          editable: false },
+  { key: 'salesOrder',   label: 'Sales Order Name',   cls: 'name-cell',        editable: true, col: NL_COL.salesOrder },
+  { key: 'status',       label: 'Status',             cls: 'nl-status-cell',   editable: true, col: NL_COL.status },
+  { key: 'salesRep',     label: 'Sales Rep',          cls: 'person-cell',      editable: true, col: NL_COL.salesRep },
+  { key: 'lineItemName', label: 'Sales Line Item',    cls: 'name-cell',        editable: true, col: NL_COL.lineItemName },
+  { key: 'startDate',    label: 'Start',              cls: 'date-cell',        editable: true, col: NL_COL.startDate,    isDate: true },
+  { key: 'endDate',      label: 'End',                cls: 'date-cell',        editable: true, col: NL_COL.endDate,      isDate: true },
+  { key: 'dateLaunched', label: 'Date Launched',      cls: 'date-cell nl-date-launched', editable: true, col: NL_COL.dateLaunched, isDate: true },
+  { key: 'advertiser',   label: 'Advertiser',         cls: 'advertiser-cell',  editable: true, col: NL_COL.advertiser },
+  { key: 'quantity',     label: 'Quantity',           cls: 'nl-qty-cell',      editable: true, col: NL_COL.quantity },
+  { key: 'salesStage',   label: 'Sales Stage',        cls: '',                 editable: true, col: NL_COL.salesStage },
+  { key: 'workflow',     label: 'Workflow Status',    cls: '',                 editable: true, col: NL_COL.workflow },
+  { key: 'contact',      label: 'Contact',            cls: 'person-cell',      editable: true, col: NL_COL.contact },
+];
+
+function filterNewsletterRows(rows) {
+  return rows.filter(r => {
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      const hay = [r.id, r.salesOrder, r.status, r.salesRep, r.lineItemName,
+                   r.advertiser, r.quantity, r.salesStage, r.workflow, r.contact].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (advFilter   && r.advertiser !== advFilter) return false;
+    if (salesFilter && r.salesRep   !== salesFilter) return false;
+    // Multi-select status filter: hide rows whose status is in the unchecked set.
+    // Empty status counts as the literal empty string '' for filter purposes
+    // so users can explicitly hide blank-status rows if they want.
+    if (nlStatusHidden.size > 0) {
+      const statusKey = (r.status || '').trim().toLowerCase();
+      if (nlStatusHidden.has(statusKey)) return false;
+    }
+    return true;
+  });
+}
+
+function sortNewsletterRows(rows) {
+  if (!sortCol) return rows;
+  const copy = [...rows];
+  copy.sort((a, b) => {
+    let av = (a[sortCol] || '');
+    let bv = (b[sortCol] || '');
+    // Date-aware compare for date columns
+    if (sortCol === 'startDate' || sortCol === 'endDate') {
+      av = toISODate(av) || '';
+      bv = toISODate(bv) || '';
+    } else {
+      av = String(av).toLowerCase();
+      bv = String(bv).toLowerCase();
+    }
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ?  1 : -1;
+    return 0;
+  });
+  return copy;
+}
+
+// Get the effective value of a newsletter field, preferring a local override
+function nlVal(r, key) {
+  if (r._overrides && r._overrides[key] !== undefined) return r._overrides[key];
+  return r[key] || '';
+}
+
+// Compute Overdue / Soon urgency for a newsletter row's start date.
+// Returns 'overdue' (start in the past), 'soon' (within 7 days), or null.
+// Suppressed for rows whose status indicates the row is no longer actionable —
+// no point yelling "Overdue" at something archived or completed last year.
+function nlUrgency(r) {
+  // If the row has been launched, the pill is irrelevant — suppress
+  const launched = (nlVal(r, 'dateLaunched') || '').trim();
+  if (launched) return null;
+  const status = (nlVal(r, 'status') || '').toLowerCase();
+  if (/archive|cancel|complet|delivered|done|closed/.test(status)) return null;
+  const raw = nlVal(r, 'startDate');
+  const iso = toISODate(raw);
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  const start = new Date(y, m - 1, d);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((start - now) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0)  return 'overdue';
+  if (diffDays <= 7) return 'soon';
+  return null;
+}
+
+function renderNewsletterTable(rows) {
+  const filtered = filterNewsletterRows(sortNewsletterRows(rows));
+
+  const thHTML = NEWSLETTER_COLUMNS.map(c => {
+    const active = sortCol === c.key ? 'sorted' : '';
+    const arrow = sortCol === c.key ? (sortAsc ? '↑' : '↓') : '↕';
+    return `<th class="${active}" data-col="${c.key}">${escHTML(c.label)}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join('');
+
+  const rowsHTML = filtered.length === 0
+    ? `<tr><td colspan="${NEWSLETTER_COLUMNS.length}"><div class="empty-state"><div class="icon">∅</div><p>No newsletters to show</p><small>The list is empty or hasn\u2019t loaded</small></div></td></tr>`
+    : filtered.map(r => {
+        const startDisp = nlVal(r, 'startDate');
+        const endDisp   = nlVal(r, 'endDate');
+        const launchedDisp = nlVal(r, 'dateLaunched');
+        const startFmt    = startDisp    ? fmtDate(startDisp)    : '—';
+        const endFmt      = endDisp      ? fmtDate(endDisp)      : '—';
+        const launchedFmt = launchedDisp ? fmtDate(launchedDisp) : '—';
+        const startIso    = toISODate(startDisp);
+        const endIso      = toISODate(endDisp);
+        const launchedIso = toISODate(launchedDisp);
+        // Compute urgency (Overdue / Soon) based on start date; suppressed for terminal statuses
+        const urgency = nlUrgency(r);
+        const urgencyPill = urgency
+          ? `<span class="urgency-pill urgency-${urgency}">${urgency === 'overdue' ? 'Overdue' : 'Soon'}</span>`
+          : '';
+        const urgencyRowClass = urgency ? ` row-${urgency}` : '';
+        return `<tr data-nl-idx="${r._idx}" class="${urgencyRowClass.trim()}">
+          <td class="id-cell">${escHTML(r.id) || '—'}</td>
+          <td class="name-cell nl-editable" data-nl-key="salesOrder"  title="${escHTML(nlVal(r,'salesOrder'))}">${escHTML(nlVal(r,'salesOrder')) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="nl-status-cell nl-editable" data-nl-key="status">${escHTML(nlVal(r,'status')) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="person-cell nl-editable" data-nl-key="salesRep">${escHTML(nlVal(r,'salesRep')) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="name-cell nl-editable" data-nl-key="lineItemName" title="${escHTML(nlVal(r,'lineItemName'))}">${escHTML(nlVal(r,'lineItemName')) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="date-cell nl-editable-date" data-nl-key="startDate" data-nl-col="${NL_COL.startDate}">
+            <span class="nl-date-display">${startFmt}</span>${urgencyPill}
+            <div class="date-picker nl-date-picker">
+              <div class="date-3field">
+                <input type="number" class="d-mm" placeholder="MM" min="1" max="12" value="${startIso.split('-')[1] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-dd" placeholder="DD" min="1" max="31" value="${startIso.split('-')[2] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-yyyy" placeholder="YYYY" min="2000" max="2099" value="${startIso.split('-')[0] || ''}">
+              </div>
+              <button class="date-apply nl-date-apply">Apply</button>
+            </div>
+          </td>
+          <td class="date-cell nl-editable-date" data-nl-key="endDate" data-nl-col="${NL_COL.endDate}">
+            <span class="nl-date-display">${endFmt}</span>
+            <div class="date-picker nl-date-picker">
+              <div class="date-3field">
+                <input type="number" class="d-mm" placeholder="MM" min="1" max="12" value="${endIso.split('-')[1] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-dd" placeholder="DD" min="1" max="31" value="${endIso.split('-')[2] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-yyyy" placeholder="YYYY" min="2000" max="2099" value="${endIso.split('-')[0] || ''}">
+              </div>
+              <button class="date-apply nl-date-apply">Apply</button>
+            </div>
+          </td>
+          <td class="date-cell nl-editable-date nl-date-launched${launchedDisp ? ' is-launched' : ''}" data-nl-key="dateLaunched" data-nl-col="${NL_COL.dateLaunched}">
+            <span class="nl-date-display">${launchedFmt}</span>
+            <div class="date-picker nl-date-picker">
+              <div class="date-3field">
+                <input type="number" class="d-mm" placeholder="MM" min="1" max="12" value="${launchedIso.split('-')[1] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-dd" placeholder="DD" min="1" max="31" value="${launchedIso.split('-')[2] || ''}">
+                <span class="d-sep">/</span>
+                <input type="number" class="d-yyyy" placeholder="YYYY" min="2000" max="2099" value="${launchedIso.split('-')[0] || ''}">
+              </div>
+              <button class="date-apply nl-date-apply">Apply</button>
+            </div>
+          </td>
+          <td class="advertiser-cell nl-editable" data-nl-key="advertiser" title="${escHTML(nlVal(r,'advertiser'))}">${escHTML(nlVal(r,'advertiser')) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="nl-qty-cell nl-editable" data-nl-key="quantity">${escHTML(nlVal(r,'quantity')) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="nl-editable" data-nl-key="salesStage">${escHTML(nlVal(r,'salesStage')) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="nl-editable" data-nl-key="workflow">${escHTML(nlVal(r,'workflow')) || '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="person-cell nl-editable" data-nl-key="contact">${escHTML(nlVal(r,'contact')) || '<span style="color:var(--fog)">—</span>'}</td>
+        </tr>`;
+      }).join('');
+
+  const countText = filtered.length === rows.length
+    ? `${rows.length} ${rows.length === 1 ? 'newsletter' : 'newsletters'}`
+    : `${filtered.length} of ${rows.length}`;
+
+  return `
+    <div class="section-head">
+      <div class="section-title-group">
+        <h2 class="section-title">News<em>letters</em></h2>
+        <span class="section-meta">${countText}</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>${thHTML}</tr></thead>
+          <tbody>${rowsHTML}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// Save a newsletter cell edit — column index comes from NEWSLETTER_COLUMNS.col
+async function saveNewsletterEdit(rowIdx, key, newValue) {
+  const colMeta = NEWSLETTER_COLUMNS.find(c => c.key === key);
+  if (!colMeta || colMeta.col === undefined) return;
+  const r = DATA.newsletters[rowIdx];
+  if (!r) return;
+  // Optimistic local override + commit to sheet
+  r._overrides = r._overrides || {};
+  r._overrides[key] = newValue;
+  r[key] = newValue;
+  await writeNewsletterCell(rowIdx, colMeta.col, newValue);
+}
+
+// ── NEWSLETTER STATUS FILTER (multi-select dropdown) ────────
+// Build the unique-status list from current newsletter data, sorted with
+// counts. Returns [{ key: lowercased status, label: display version, count }]
+function nlStatusList() {
+  const rows = DATA.newsletters || [];
+  const counts = new Map();
+  rows.forEach(r => {
+    const raw = (r.status || '').trim();
+    const key = raw.toLowerCase();
+    if (!counts.has(key)) counts.set(key, { label: raw || '(blank)', count: 0 });
+    counts.get(key).count += 1;
+  });
+  return [...counts.entries()]
+    .map(([key, info]) => ({ key, label: info.label, count: info.count }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+// Seed the default-hidden status set: anything CONTAINING "archive" or "cancel"
+// (case-insensitive). Only runs once per page load — the user can re-check
+// these any time and they won't auto-hide again until the next reload.
+function seedNlStatusDefaults() {
+  if (nlStatusSeeded) return;
+  const list = nlStatusList();
+  if (list.length === 0) return;  // wait until we have data
+  list.forEach(s => {
+    if (/archive|cancel/.test(s.key)) nlStatusHidden.add(s.key);
+  });
+  nlStatusSeeded = true;
+}
+
+// Render the status options inside the dropdown and update the button label
+function renderNlStatusFilter() {
+  const optionsEl = document.getElementById('nlStatusOptions');
+  const labelEl   = document.getElementById('nlStatusBtnLabel');
+  const wrap      = document.getElementById('nlStatusFilterWrap');
+  if (!optionsEl || !labelEl || !wrap) return;
+  const list = nlStatusList();
+  if (list.length === 0) {
+    optionsEl.innerHTML = '<div class="nl-status-empty">No statuses to filter</div>';
+    labelEl.textContent = 'All Statuses';
+    wrap.classList.remove('active');
+    return;
+  }
+  optionsEl.innerHTML = list.map(s => {
+    const checked = !nlStatusHidden.has(s.key);
+    const safeKey = escHTML(s.key);
+    return `<label class="nl-status-opt">
+      <input type="checkbox" data-status="${safeKey}" ${checked ? 'checked' : ''}>
+      <span class="nl-status-name" title="${escHTML(s.label)}">${escHTML(s.label)}</span>
+      <span class="nl-status-count">${s.count}</span>
+    </label>`;
+  }).join('');
+  // Update button label
+  const totalCount = list.length;
+  const visibleCount = list.filter(s => !nlStatusHidden.has(s.key)).length;
+  if (visibleCount === totalCount) {
+    labelEl.textContent = 'All Statuses';
+    wrap.classList.remove('active');
+  } else if (visibleCount === 0) {
+    labelEl.textContent = 'No Statuses';
+    wrap.classList.add('active');
+  } else {
+    labelEl.textContent = `${visibleCount} of ${totalCount} Statuses`;
+    wrap.classList.add('active');
+  }
+}
+
+function openNlStatusDropdown() {
+  document.getElementById('nlStatusDropdown')?.classList.add('open');
+  document.getElementById('nlStatusBtn')?.setAttribute('aria-expanded', 'true');
+}
+function closeNlStatusDropdown() {
+  document.getElementById('nlStatusDropdown')?.classList.remove('open');
+  document.getElementById('nlStatusBtn')?.setAttribute('aria-expanded', 'false');
+}
+function toggleNlStatusDropdown() {
+  const dd = document.getElementById('nlStatusDropdown');
+  if (!dd) return;
+  if (dd.classList.contains('open')) closeNlStatusDropdown();
+  else { renderNlStatusFilter(); openNlStatusDropdown(); }
+}
+
 function renderGamLinkCell(r, tabId) {
   const raw = r._gamLinkOverride !== undefined ? r._gamLinkOverride : r.gamLink;
   const trimmed = (raw || '').trim();
@@ -3749,15 +4352,24 @@ function renderAll() {
   const rows = DATA[activeTab] || [];
   const tabMeta = TABS.find(t => t.id === activeTab);
   const isLog = !!tabMeta?.isLog;
+  const isNewsletter = !!tabMeta?.isNewsletter;
+
+  let tableHTML;
+  if (isLog) tableHTML = renderChangelogTable(rows);
+  else if (isNewsletter) tableHTML = renderNewsletterTable(rows);
+  else tableHTML = renderTable(rows, activeTab);
 
   document.getElementById('mainContent').innerHTML =
     `<div class="tab-panel">
        <div class="filter-summary" id="filterSummary"></div>
-       ${isLog ? renderChangelogTable(rows) : renderTable(rows, activeTab)}
+       ${tableHTML}
      </div>`;
 
   // Result count — reuse the same count element; on log tabs, filter differently
-  const filtered = isLog ? filterLogRows(rows) : filterRows(rows);
+  let filtered;
+  if (isLog) filtered = filterLogRows(rows);
+  else if (isNewsletter) filtered = filterNewsletterRows(rows);
+  else filtered = filterRows(rows);
   document.getElementById('resultCount').textContent =
     filtered.length === rows.length ? `${rows.length} results` : `${filtered.length} / ${rows.length}`;
 
@@ -3770,6 +4382,100 @@ function renderAll() {
       userSortedThisTab = true;
       renderAll();
     });
+  });
+
+  // ── NEWSLETTER inline editors ───────────────────────────────
+  // Text cells: click → swap in an <input>, Enter/blur to save, Esc to cancel
+  document.querySelectorAll('td.nl-editable').forEach(td => {
+    td.addEventListener('click', e => {
+      if (td.classList.contains('nl-cell-editing')) return;
+      const tr = td.closest('tr[data-nl-idx]');
+      if (!tr) return;
+      const rowIdx = parseInt(tr.dataset.nlIdx);
+      const key = td.dataset.nlKey;
+      const r = DATA.newsletters[rowIdx];
+      if (!r) return;
+      const currentVal = nlVal(r, key);
+      // Build inline input
+      td.classList.add('nl-cell-editing');
+      const originalHTML = td.innerHTML;
+      td.innerHTML = `<input type="text" class="nl-inline-input" value="${escHTML(currentVal)}">`;
+      const input = td.querySelector('input');
+      input.focus();
+      input.select();
+      let committed = false;
+      const commit = async () => {
+        if (committed) return;
+        committed = true;
+        const newVal = input.value;
+        td.classList.remove('nl-cell-editing');
+        if (newVal !== currentVal) {
+          await saveNewsletterEdit(rowIdx, key, newVal);
+          // Optimistically re-render this cell so it shows the new value immediately
+          td.innerHTML = newVal ? escHTML(newVal) : '<span style="color:var(--fog)">—</span>';
+          if (td.classList.contains('name-cell') || td.classList.contains('advertiser-cell')) {
+            td.setAttribute('title', newVal);
+          }
+        } else {
+          td.innerHTML = originalHTML;
+        }
+      };
+      const cancel = () => {
+        committed = true;
+        td.classList.remove('nl-cell-editing');
+        td.innerHTML = originalHTML;
+      };
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); cancel(); }
+        ev.stopPropagation();  // don't let keystrokes leak to global shortcuts
+      });
+    });
+  });
+
+  // Date cells: open picker on click (similar to campaign tab date editing)
+  document.querySelectorAll('td.nl-editable-date').forEach(td => {
+    const picker = td.querySelector('.nl-date-picker');
+    const mm = td.querySelector('.d-mm');
+    td.addEventListener('click', e => {
+      if (e.target.closest('.nl-date-picker')) return;
+      e.stopPropagation();
+      document.querySelectorAll('.date-picker.open, .nl-date-picker.open').forEach(p => {
+        if (p !== picker) p.classList.remove('open');
+      });
+      picker.classList.toggle('open');
+      if (picker.classList.contains('open')) setTimeout(() => mm?.focus(), 50);
+    });
+    const apply = td.querySelector('.nl-date-apply');
+    apply.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const m = td.querySelector('.d-mm').value.trim();
+      const d = td.querySelector('.d-dd').value.trim();
+      const y = td.querySelector('.d-yyyy').value.trim();
+      const tr = td.closest('tr[data-nl-idx]');
+      if (!tr) return;
+      const rowIdx = parseInt(tr.dataset.nlIdx);
+      const key = td.dataset.nlKey;
+      // Empty all three = clear date; otherwise validate
+      let newVal = '';
+      if (m || d || y) {
+        const mi = parseInt(m), di = parseInt(d), yi = parseInt(y);
+        if (!(mi >= 1 && mi <= 12) || !(di >= 1 && di <= 31) || !(yi >= 2000 && yi <= 2099)) {
+          // Bad input — bail without saving
+          picker.classList.remove('open');
+          return;
+        }
+        newVal = `${mi}/${di}/${yi}`;
+      }
+      picker.classList.remove('open');
+      await saveNewsletterEdit(rowIdx, key, newVal);
+      // Update display
+      const display = td.querySelector('.nl-date-display');
+      if (display) display.textContent = newVal ? fmtDate(newVal) : '—';
+    });
+    // Stop click propagation inside the picker so it doesn't toggle while typing
+    picker.addEventListener('click', e => e.stopPropagation());
   });
 
   // Notes editors
@@ -3919,7 +4625,7 @@ function renderTabs() {
     // V2.1: @mention badge per tab so you see where mentions live
     let mentionBadge = '';
     const mCount = mentionBreakdown[t.id] || 0;
-    if (mCount > 0 && !t.isLog) {
+    if (mCount > 0 && !t.isLog && !t.isNewsletter) {
       mentionBadge = `<span class="tab-mention-badge" title="${mCount} ${mCount === 1 ? 'row mentions' : 'rows mention'} you on ${t.label}">@${mCount}</span>`;
     }
     return `<button class="tab-btn ${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}">
@@ -3974,7 +4680,7 @@ function syncFloatButtons() {
   if (countEl) {
     const breakdown = countMyMentionsByTab();
     const hereCount = breakdown[activeTab] || 0;
-    const otherTabs = TABS.filter(t => !t.isLog && t.id !== activeTab && (breakdown[t.id] || 0) > 0);
+    const otherTabs = TABS.filter(t => !t.isLog && !t.isNewsletter && t.id !== activeTab && (breakdown[t.id] || 0) > 0);
 
     // Badge shows the count here; "·n" suffix appears if there are more elsewhere
     if (hereCount > 0 || otherTabs.length > 0) {
@@ -4016,7 +4722,8 @@ function renderStats() {
 function populateFilters() {
   const allRows = Object.values(DATA).flat();
   const advs = [...new Set(allRows.map(r => r.advertiser).filter(Boolean))].sort();
-  const sales = [...new Set(allRows.map(r => r.salesperson).filter(Boolean))].sort();
+  // Newsletter rows use "salesRep" while campaign rows use "salesperson" — union both
+  const sales = [...new Set(allRows.flatMap(r => [r.salesperson, r.salesRep]).filter(Boolean))].sort();
   const types = [...new Set(allRows.map(r => r.type).filter(Boolean))].sort();
 
   fillSelect('advertiserFilter',  advs,  'All Advertisers',  advFilter);
@@ -4039,6 +4746,7 @@ function fillSelect(id, options, allLabel, current) {
 function syncFilterUI() {
   const tabMeta = TABS.find(t => t.id === activeTab);
   const isLog = !!tabMeta?.isLog;
+  const isNewsletter = !!tabMeta?.isNewsletter;
 
   const pairs = [
     ['advertiserFilter',  advFilter],
@@ -4053,13 +4761,21 @@ function syncFilterUI() {
   });
 
   // Salesperson + Type filters don't apply to the Change Log — hide them there.
-  // Advertiser filter is kept because it's shared between campaign data and the log.
+  // Newsletters has its own "Sales Rep" but no Type — hide Type only.
+  // Advertiser filter is kept because it's shared everywhere.
   const salesWrap = document.getElementById('salespersonFilter')?.closest('.filter-wrap');
   const typeWrap  = document.getElementById('typeFilter')?.closest('.filter-wrap');
   if (salesWrap) salesWrap.style.display = isLog ? 'none' : '';
-  if (typeWrap)  typeWrap.style.display  = isLog ? 'none' : '';
+  if (typeWrap)  typeWrap.style.display  = (isLog || isNewsletter) ? 'none' : '';
 
-  const anyActive = !!(searchQ || advFilter || (!isLog && salesFilter) || (!isLog && typeFilter));
+  // Newsletter status filter: only visible on the Newsletters tab
+  const nlStatusWrap = document.getElementById('nlStatusFilterWrap');
+  if (nlStatusWrap) {
+    nlStatusWrap.style.display = isNewsletter ? '' : 'none';
+    if (isNewsletter) renderNlStatusFilter();
+  }
+
+  const anyActive = !!(searchQ || advFilter || (!isLog && salesFilter) || (!isLog && !isNewsletter && typeFilter) || (isNewsletter && nlStatusHidden.size > 0));
   const clearAll = document.getElementById('clearAllFilters');
   if (clearAll) clearAll.style.display = anyActive ? 'inline-flex' : 'none';
 }
@@ -4310,6 +5026,8 @@ function installGlobalHandlers() {
   // ── DATE APPLY (capture phase) ──
   document.addEventListener('click', e => {
     if (!e.target.classList.contains('date-apply')) return;
+    // Newsletter cells have their own per-cell handler — don't hijack their clicks
+    if (e.target.classList.contains('nl-date-apply')) return;
     e.stopPropagation();
     const picker = e.target.closest('.date-picker');
     const td     = e.target.closest('td.editable-date');
@@ -4742,7 +5460,7 @@ function renderCommandResults() {
     // Free-text row matching across all tabs
     const allRows = [];
     TABS.forEach(t => {
-      if (t.isLog) return;
+      if (t.isLog || t.isNewsletter) return;
       (DATA[t.id] || []).forEach(r => allRows.push({ r, tab: t.id, tabLabel: t.label }));
     });
     const rowMatches = allRows
@@ -4865,12 +5583,71 @@ document.addEventListener('DOMContentLoaded', () => {
     advFilter = '';
     salesFilter = '';
     typeFilter = '';
+    nlStatusHidden.clear();
     document.getElementById('searchInput').value = '';
     document.getElementById('advertiserFilter').value = '';
     document.getElementById('salespersonFilter').value = '';
     document.getElementById('typeFilter').value = '';
     syncFilterUI();
     renderAll();
+  });
+
+  // ── NEWSLETTER status multi-select dropdown ─────────────
+  const nlBtn = document.getElementById('nlStatusBtn');
+  if (nlBtn) {
+    nlBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleNlStatusDropdown();
+    });
+  }
+  const nlDD = document.getElementById('nlStatusDropdown');
+  if (nlDD) {
+    // Stop clicks inside the dropdown from closing it via the outside-click handler
+    nlDD.addEventListener('click', (e) => e.stopPropagation());
+    // Checkbox toggle
+    nlDD.addEventListener('change', (e) => {
+      const cb = e.target.closest('input[type="checkbox"][data-status]');
+      if (!cb) return;
+      const key = cb.dataset.status;
+      if (cb.checked) nlStatusHidden.delete(key);
+      else nlStatusHidden.add(key);
+      renderNlStatusFilter();  // refresh "X of Y" label
+      syncFilterUI();
+      renderAll();
+    });
+  }
+  // Select all / Clear all buttons inside the dropdown
+  document.getElementById('nlStatusSelectAll')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    nlStatusHidden.clear();
+    renderNlStatusFilter();
+    syncFilterUI();
+    renderAll();
+  });
+  document.getElementById('nlStatusClearAll')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    nlStatusHidden = new Set(nlStatusList().map(s => s.key));
+    renderNlStatusFilter();
+    syncFilterUI();
+    renderAll();
+  });
+  // × button next to the dropdown — resets to "all visible"
+  document.getElementById('nlStatusClear')?.addEventListener('click', () => {
+    nlStatusHidden.clear();
+    renderNlStatusFilter();
+    syncFilterUI();
+    renderAll();
+  });
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('nlStatusFilterWrap');
+    if (wrap && !wrap.contains(e.target)) closeNlStatusDropdown();
+  });
+  // Esc closes the dropdown
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('nlStatusDropdown')?.classList.contains('open')) {
+      closeNlStatusDropdown();
+    }
   });
 
   syncFilterUI();
