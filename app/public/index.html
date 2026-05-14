@@ -1909,6 +1909,81 @@
     color: var(--accent-hover);
   }
 
+  /* ═══ CONFIG CHECKBOX (Ready tab) ═══════════════════════════ */
+  td.config-cell {
+    text-align: center;
+    vertical-align: middle;
+    padding: 8px 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .config-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--silver);
+    border-radius: 4px;
+    background: var(--white);
+    cursor: pointer;
+    transition: all 0.12s;
+    vertical-align: middle;
+  }
+  .config-check:hover { border-color: var(--slate); }
+  .config-check.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .config-check svg {
+    width: 12px;
+    height: 12px;
+    color: var(--white);
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .config-check.checked svg { opacity: 1; }
+  .config-label {
+    display: inline-block;
+    margin-left: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent-hover);
+    font-weight: 600;
+    vertical-align: middle;
+    line-height: 18px;
+  }
+
+  /* Pick-person dialog buttons */
+  .pick-person-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .pick-person-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 16px;
+    background: var(--accent);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .pick-person-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+  .pick-person-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   /* ═══ CONFIRM DIALOG (for Slack actions) ═══════════════════ */
   .confirm-overlay {
     position: fixed;
@@ -2178,12 +2253,16 @@ const NL_COL = {
 //   _webhook_screenshots    | https://hooks.slack.com/services/...
 //   _webhook_reports        | https://hooks.slack.com/services/...
 //   _webhook_mentions       | https://hooks.slack.com/services/...
+//   _webhook_carli          | https://hooks.slack.com/services/...  (Config DMs)
+//   _webhook_aidalina       | https://hooks.slack.com/services/...  (Config DMs)
 //
-// All three keys must start with an underscore so they're easy to spot and
+// All keys must start with an underscore so they're easy to spot and
 // don't collide with any real first names.
-let SLACK_WEBHOOK_URL        = '';  // screenshots channel
-let SLACK_REPORT_WEBHOOK_URL = '';  // reports channel
-let MENTIONS_WEBHOOK_URL     = '';  // mentions channel
+let SLACK_WEBHOOK_URL          = '';  // screenshots channel
+let SLACK_REPORT_WEBHOOK_URL   = '';  // reports channel
+let MENTIONS_WEBHOOK_URL       = '';  // mentions channel
+let CONFIG_WEBHOOK_CARLI       = '';  // Config DM → Carli
+let CONFIG_WEBHOOK_AIDALINA    = '';  // Config DM → Aidalina
 
 // Name of the sheet tab that holds the first-name → Slack user ID mapping.
 const SLACK_MAP_TAB = 'Slack';
@@ -2206,15 +2285,16 @@ const COL = {
   salesperson: 10, // K
   screenshots: 11, // L
   gamLink:     12, // M
+  config:      13, // N — Ready tab only: "Carli (notified 3/15)" or empty
 };
 
 const SHEET_MAP = {
-  upcoming:   { name: 'Upcoming',   range: 'Upcoming!A2:M' },
-  ready:      { name: 'Ready',      range: 'Ready!A2:M' },
-  delivering: { name: 'Delivering', range: 'Delivering!A2:M' },
-  paused:     { name: 'Paused',     range: 'Paused!A2:M' },
-  completed:  { name: 'Completed',  range: 'Completed!A2:M' },
-  cancelled:  { name: 'Cancelled',  range: 'Cancelled!A2:M' },
+  upcoming:   { name: 'Upcoming',   range: 'Upcoming!A2:N' },
+  ready:      { name: 'Ready',      range: 'Ready!A2:N' },
+  delivering: { name: 'Delivering', range: 'Delivering!A2:N' },
+  paused:     { name: 'Paused',     range: 'Paused!A2:N' },
+  completed:  { name: 'Completed',  range: 'Completed!A2:N' },
+  cancelled:  { name: 'Cancelled',  range: 'Cancelled!A2:N' },
 };
 
 const TABS = [
@@ -3010,11 +3090,19 @@ async function fetchSlackMap() {
         MENTIONS_WEBHOOK_URL = value;
         return;
       }
+      if (name === '_webhook_carli') {
+        CONFIG_WEBHOOK_CARLI = value;
+        return;
+      }
+      if (name === '_webhook_aidalina') {
+        CONFIG_WEBHOOK_AIDALINA = value;
+        return;
+      }
       // Regular user row: first-name → Slack user ID
       map[name] = value;
     });
-    const webhookCount = (SLACK_WEBHOOK_URL ? 1 : 0) + (SLACK_REPORT_WEBHOOK_URL ? 1 : 0) + (MENTIONS_WEBHOOK_URL ? 1 : 0);
-    console.info('[slack-map] loaded', Object.keys(map).length, 'user mappings,', webhookCount, 'of 3 webhooks');
+    const webhookCount = (SLACK_WEBHOOK_URL ? 1 : 0) + (SLACK_REPORT_WEBHOOK_URL ? 1 : 0) + (MENTIONS_WEBHOOK_URL ? 1 : 0) + (CONFIG_WEBHOOK_CARLI ? 1 : 0) + (CONFIG_WEBHOOK_AIDALINA ? 1 : 0);
+    console.info('[slack-map] loaded', Object.keys(map).length, 'user mappings,', webhookCount, 'of 5 webhooks');
     return map;
   } catch(e) {
     console.warn('[slack-map] fetch failed:', e);
@@ -3144,9 +3232,9 @@ async function silentRefresh() {
         const overrideMap = {
           startDate: '_startOverride', endDate: '_endOverride',
           assets: '_assetsOverride', screenshots: '_ssOverride',
-          gamLink: '_gamLinkOverride',
+          gamLink: '_gamLinkOverride', config: '_configOverride',
         };
-        const fields = ['status','assets','startDate','dealId','advertiser','ioName','lineItem','lineItemId','endDate','type','salesperson','screenshots','gamLink'];
+        const fields = ['status','assets','startDate','dealId','advertiser','ioName','lineItem','lineItemId','endDate','type','salesperson','screenshots','gamLink','config'];
         let rowChanged = false;
         fields.forEach(f => {
           if (row[f] === cur[f]) return;
@@ -3316,6 +3404,97 @@ function confirmAction(opts) {
   });
 }
 
+// ── PICK PERSON DIALOG ──────────────────────────────────────
+// Same visual style as confirmAction but with N choice buttons + cancel.
+// Used by the Config checkbox to pick Carli or Aidalina. Returns the chosen
+// name, or null if cancelled.
+//
+// Usage:
+//   const pick = await pickPerson({
+//     title: 'Who should build the config?',
+//     message: 'A Slack DM will be sent immediately to whoever you pick.',
+//     row: r,
+//     choices: ['Carli', 'Aidalina'],
+//     icon: '🔧',
+//   });
+//   if (!pick) return;  // user cancelled
+let _pickPersonDialog = null;
+function pickPerson(opts) {
+  return new Promise((resolve) => {
+    if (!_pickPersonDialog) {
+      _pickPersonDialog = document.createElement('div');
+      _pickPersonDialog.className = 'confirm-overlay';  // reuses overlay style
+      _pickPersonDialog.innerHTML = `
+        <div class="confirm-panel" role="dialog" aria-modal="true" aria-labelledby="pickPersonTitle">
+          <div class="confirm-header">
+            <div class="confirm-icon" id="pickPersonIcon">?</div>
+            <div class="confirm-title" id="pickPersonTitle">Pick someone</div>
+          </div>
+          <div class="confirm-body">
+            <div class="confirm-message" id="pickPersonMessage"></div>
+            <div class="confirm-row-summary" id="pickPersonRowSummary" style="display:none"></div>
+            <div class="pick-person-buttons" id="pickPersonButtons"></div>
+          </div>
+          <div class="confirm-actions">
+            <button class="confirm-btn confirm-btn-cancel" type="button" id="pickPersonCancel">Cancel</button>
+          </div>
+        </div>`;
+      document.body.appendChild(_pickPersonDialog);
+    }
+    const dlg = _pickPersonDialog;
+    dlg.querySelector('#pickPersonTitle').textContent = opts.title || 'Pick someone';
+    dlg.querySelector('#pickPersonIcon').textContent  = opts.icon  || '?';
+    dlg.querySelector('#pickPersonMessage').textContent = opts.message || '';
+    const sumEl = dlg.querySelector('#pickPersonRowSummary');
+    if (opts.row) {
+      const r = opts.row;
+      sumEl.style.display = 'block';
+      sumEl.innerHTML = `
+        <div class="crs-label">Advertiser</div>
+        <div class="crs-value">${escHTML((r.advertiser || '—').trim())}</div>
+        ${r.ioName   ? `<div class="crs-label">IO Name</div><div class="crs-value crs-secondary">${escHTML(r.ioName)}</div>`   : ''}
+        ${r.lineItem ? `<div class="crs-label">Line Item</div><div class="crs-value crs-secondary">${escHTML(r.lineItem)}</div>` : ''}
+      `;
+    } else {
+      sumEl.style.display = 'none';
+    }
+    const btnsEl = dlg.querySelector('#pickPersonButtons');
+    btnsEl.innerHTML = (opts.choices || []).map((c, i) =>
+      `<button class="pick-person-btn" data-choice="${escHTML(c)}" type="button">${escHTML(c)}</button>`
+    ).join('');
+
+    const cancelBtn = dlg.querySelector('#pickPersonCancel');
+    let resolved = false;
+    function cleanup(result) {
+      if (resolved) return;
+      resolved = true;
+      dlg.classList.remove('open');
+      btnsEl.removeEventListener('click', onPick);
+      cancelBtn.removeEventListener('click', onCancel);
+      dlg.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey, true);
+      resolve(result);
+    }
+    function onPick(e) {
+      const btn = e.target.closest('.pick-person-btn');
+      if (!btn) return;
+      cleanup(btn.dataset.choice);
+    }
+    function onCancel() { cleanup(null); }
+    function onBackdrop(e) { if (e.target === dlg) cleanup(null); }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cleanup(null); }
+    }
+    btnsEl.addEventListener('click', onPick);
+    cancelBtn.addEventListener('click', onCancel);
+    dlg.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey, true);
+
+    dlg.classList.add('open');
+    setTimeout(() => btnsEl.querySelector('.pick-person-btn')?.focus(), 50);
+  });
+}
+
 // ── SLACK NOTIFICATION ──────────────────────────────────────
 // Fires a multi-line message to the configured Slack channel when a user checks
 // the Screenshots box on a row. Fails silently if the webhook is unreachable or
@@ -3412,6 +3591,59 @@ async function sendReportRequest(row) {
     return true;
   } catch(e) {
     console.warn('[slack] report request failed:', e);
+    return false;
+  }
+}
+
+// ── SLACK CONFIG REQUEST ─────────────────────────────────────
+// Fires when Christine checks the Config box on a Ready row and picks who to
+// notify. Each person has their own webhook (set in the Slack tab as
+// _webhook_carli / _webhook_aidalina) so the message lands as a DM in
+// whichever channel/DM that webhook is configured for.
+async function sendConfigRequest(personName, row) {
+  const webhook = personName === 'Carli' ? CONFIG_WEBHOOK_CARLI
+                : personName === 'Aidalina' ? CONFIG_WEBHOOK_AIDALINA
+                : '';
+  if (!webhook) {
+    console.warn('[slack] no config webhook configured for', personName);
+    return false;
+  }
+  const advertiser = (row.advertiser || '—').trim();
+  const ioName     = (row.ioName     || '—').trim();
+  const lineItem   = (row.lineItem   || '—').trim();
+  const dealId     = (row.dealId     || '—').trim();
+  const lineItemId = (row.lineItemId || '—').trim();
+  const startDate  = (row._startOverride || row.startDate || '—').trim();
+  const endDate    = (row._endOverride   || row.endDate   || '—').trim();
+  const type       = (row.type        || '—').trim();
+  const sales      = (row.salesperson || '—').trim();
+
+  const lines = [
+    '🔧 *Config build needed*',
+    `Hi ${personName} — Christine has flagged this line item for a config build.`,
+    '',
+    `*Advertiser:* ${advertiser}`,
+    `*IO Name:* ${ioName}`,
+    `*Line Item:* ${lineItem}`,
+    `*Deal ID:* ${dealId}`,
+    `*Line Item ID:* ${lineItemId}`,
+    `*Dates:* ${startDate} → ${endDate}`,
+    `*Type:* ${type}`,
+    `*Salesperson:* ${sales}`,
+  ];
+  const text = lines.join('\n');
+
+  try {
+    await fetch(webhook, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    console.info('[slack] config request sent to', personName, 'for:', advertiser, '/', lineItem);
+    return true;
+  } catch(e) {
+    console.warn('[slack] config request failed:', e);
     return false;
   }
 }
@@ -3578,12 +3810,14 @@ function parseRow(cols, idx, tabId) {
     salesperson: cols[COL.salesperson] || '',
     screenshots: (cols[COL.screenshots] || '').toString(),
     gamLink:     cols[COL.gamLink]     || '',
+    config:      cols[COL.config]      || '',
     // local overrides
     _startOverride:   '',
     _endOverride:     '',
     _assetsOverride:  undefined,
     _ssOverride:      undefined,
     _gamLinkOverride: undefined,
+    _configOverride:  undefined,
   };
 }
 
@@ -3602,6 +3836,7 @@ function rowToSheetValues(r) {
   arr[COL.salesperson] = r.salesperson;
   arr[COL.screenshots] = isScreenshotChecked(r) ? 'Yes' : '';
   arr[COL.gamLink]     = r._gamLinkOverride !== undefined ? r._gamLinkOverride : r.gamLink;
+  arr[COL.config]      = r._configOverride !== undefined ? r._configOverride : r.config;
   return arr;
 }
 
@@ -3757,6 +3992,7 @@ function filterRows(rows) {
 // ════════════════════════════════════════════════════════════
 const COLUMNS = [
   { key: 'status',      label: 'Status' },
+  { key: 'config',      label: 'Config', tabs: ['ready'], sortable: false },
   { key: 'assets',      label: 'Assets / Notes' },
   { key: 'startDate',   label: 'Start' },
   { key: 'endDate',     label: 'End' },
@@ -3819,6 +4055,7 @@ function renderTable(rows, tabId) {
               ${statusLabel(sk)}<span class="edit-hint">✎</span>
             </span>${urgencyPill}
           </td>
+          ${tabId === 'ready' ? renderConfigCell(r, tabId) : ''}
           <td class="editable-notes" data-idx="${r._idx}" data-tab="${tabId}" title="Click to edit">
             <div class="notes-display">${assetsVal ? renderWithMentions(assetsVal.substring(0, 140)) : '<span class="notes-placeholder">Add note…</span>'}</div>
             <textarea class="notes-editor" rows="3" placeholder="Enter assets or notes…">${escHTML(assetsVal)}</textarea>
@@ -4338,6 +4575,29 @@ function isReportRequested(r) {
   return _reportRequested.has(reportKey(r));
 }
 
+// ── CONFIG CHECKBOX (Ready tab) ─────────────────────────────
+// When checked, prompts Christine to pick "Carli" or "Aidalina", then sends
+// a Slack DM via webhook (loaded from Slack tab: _webhook_carli / _webhook_aidalina).
+// Stores "<Name> (notified M/D/YY)" in col N so the cell shows who was pinged & when.
+function getConfigValue(r) {
+  return r._configOverride !== undefined ? r._configOverride : (r.config || '');
+}
+function isConfigChecked(r) {
+  return getConfigValue(r).trim() !== '';
+}
+function renderConfigCell(r, tabId) {
+  const checked = isConfigChecked(r);
+  const display = getConfigValue(r);
+  return `
+    <td class="config-cell" data-idx="${r._idx}" data-tab="${tabId}" title="${escHTML(display) || 'Click to assign config work'}">
+      <span class="config-check ${checked ? 'checked' : ''}" title="${checked ? 'Notified: ' + escHTML(display) : 'Click to notify Carli or Aidalina'}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </span>${checked ? `<span class="config-label">${escHTML(display)}</span>` : ''}
+    </td>`;
+}
+
 function renderReportButtonCell(r, tabId) {
   const requested = isReportRequested(r);
   return `
@@ -4562,6 +4822,53 @@ function renderAll() {
       // Notify Slack only when the box is being CHECKED (not unchecked).
       // Fire-and-forget — errors are logged but don't block the UI.
       if (newVal) sendSlackNotification(r);
+    });
+  });
+
+  // ── CONFIG CHECKBOX (Ready tab) — pick Carli or Aidalina then DM them ──
+  document.querySelectorAll('.config-cell').forEach(td => {
+    const check = td.querySelector('.config-check');
+    if (!check) return;
+    const idx = parseInt(td.dataset.idx);
+    const tab = td.dataset.tab;
+    check.addEventListener('click', async e => {
+      e.stopPropagation();
+      const r = DATA[tab][idx];
+      if (!r) return;
+      const wasChecked = isConfigChecked(r);
+
+      // UNCHECK: clear the cell silently, no Slack
+      if (wasChecked) {
+        r._configOverride = '';
+        r.config = '';
+        writeCell(tab, idx, COL.config, '');
+        renderAll();
+        return;
+      }
+
+      // CHECK: ask who to notify
+      const pick = await pickPerson({
+        title: 'Who should build the config?',
+        icon: '🔧',
+        message: 'A Slack DM goes out immediately to whoever you pick. Picking nobody (Cancel) leaves the checkbox unchanged.',
+        row: r,
+        choices: ['Carli', 'Aidalina'],
+      });
+      if (!pick) return;
+
+      // Build the cell value: "Carli (notified 3/15/26)"
+      const now = new Date();
+      const dateStr = `${now.getMonth() + 1}/${now.getDate()}/${String(now.getFullYear()).slice(-2)}`;
+      const cellValue = `${pick} (notified ${dateStr})`;
+
+      // Optimistic local update + write to sheet
+      r._configOverride = cellValue;
+      r.config = cellValue;
+      writeCell(tab, idx, COL.config, cellValue);
+
+      // Fire the Slack DM (fire-and-forget; errors are logged but don't block UI)
+      sendConfigRequest(pick, r);
+      renderAll();
     });
   });
 
