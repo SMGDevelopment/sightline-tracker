@@ -2281,6 +2281,7 @@ let SLACK_REPORT_WEBHOOK_URL   = '';  // reports channel
 let MENTIONS_WEBHOOK_URL       = '';  // mentions channel
 let CONFIG_WEBHOOK_CARLI       = '';  // Config DM → Carli
 let CONFIG_WEBHOOK_AIDALINA    = '';  // Config DM → Aidalina
+let CONFIG_WEBHOOK_CHRISTINE   = '';  // Config DM → Christine
 
 // ══════════════════════════════════════════════════════════════
 //  BOOSTR CONFIG
@@ -2710,12 +2711,14 @@ function initGoogleAuth() {
         return;
       }
       accessToken = resp.access_token;
+      _tokenIssuedAt = Date.now();   // track for heartbeat-based refresh
+      if (_silentRefreshGuard) { clearTimeout(_silentRefreshGuard); _silentRefreshGuard = null; }
       if (_isSilentRefresh) {
         // Quiet renewal — don't re-load data, don't reset session start, don't flicker UI.
         // The 10-hour hard ceiling is tied to initial sign-in, not each refresh.
         _isSilentRefresh = false;
         scheduleSilentRefresh();
-        console.info('[auth] silent token refresh succeeded');
+        console.info('[auth] silent token refresh succeeded at', new Date().toLocaleTimeString());
       } else {
         // Interactive sign-in — full setup, plus capture user's email for future silent refreshes
         captureUserEmailForHint();
@@ -2772,6 +2775,17 @@ function requestSilentRefresh() {
   // Skip if the hard session has expired — expiry path handles it
   if (isSessionExpired()) return;
   _isSilentRefresh = true;
+  // Anti-jam guard: GIS sometimes does nothing on prompt:'' (no success AND no
+  // error callback fires). If that happens, _isSilentRefresh would stay true
+  // forever and block all future refreshes. This timeout clears the flag so the
+  // next heartbeat tick can try again.
+  if (_silentRefreshGuard) clearTimeout(_silentRefreshGuard);
+  _silentRefreshGuard = setTimeout(() => {
+    if (_isSilentRefresh) {
+      _isSilentRefresh = false;
+      console.warn('[auth] silent refresh produced no callback within 30s — will retry next heartbeat');
+    }
+  }, SILENT_REFRESH_TIMEOUT_MS);
   const hint = localStorage.getItem('sightline_login_hint') || '';
   try {
     // login_hint tells Google which account to use silently — critical when multiple
@@ -2782,6 +2796,7 @@ function requestSilentRefresh() {
     tokenClient.requestAccessToken(args);
   } catch(e) {
     _isSilentRefresh = false;
+    if (_silentRefreshGuard) { clearTimeout(_silentRefreshGuard); _silentRefreshGuard = null; }
     console.warn('[auth] silent refresh threw:', e);
   }
 }
@@ -2817,6 +2832,7 @@ function checkOAuthRedirect() {
   const token = params.get('access_token');
   if (token) {
     accessToken = token;
+    _tokenIssuedAt = Date.now();   // track for heartbeat-based refresh
     startSessionTimer();
     captureUserEmailForHint();
     // Silent refresh will only work if the GIS token client initializes successfully.
@@ -2871,21 +2887,63 @@ function isSessionExpired() {
   return _sessionStart && (Date.now() - _sessionStart > SESSION_MAX_MS);
 }
 
-// ── SILENT TOKEN REFRESH ─────────────────────────────────────
-// Google access tokens expire after ~1 hour. We proactively renew them at the
-// 55-minute mark so the user never sees an expired-session screen during normal use.
-// The 10-hour hard ceiling still applies, so Christine re-auths at most once per workday.
-const SILENT_REFRESH_MS = 55 * 60 * 1000; // 55 minutes
-let _silentRefreshTimer = null;
+// ── SILENT TOKEN REFRESH (heartbeat model) ──────────────────
+// Google access tokens expire after ~1 hour. Rather than a single fragile
+// 55-minute setTimeout (which silently dies if the laptop sleeps, the tab is
+// backgrounded/discarded, or one refresh cycle is missed), we run a short
+// HEARTBEAT every 2 minutes that asks: "is the current token old enough to
+// refresh?" If yes, it kicks off a silent refresh. This is robust because:
+//   - A missed cycle just means the next 2-min tick catches it
+//   - Laptop sleep/wake resumes the interval; the next tick re-checks age
+//   - We also re-check immediately on tab focus / visibility change
+//   - The _isSilentRefresh flag is defensively cleared so a dropped GIS
+//     callback can't permanently jam the refresh chain
+const TOKEN_REFRESH_AGE_MS = 50 * 60 * 1000; // refresh once token is 50 min old
+const HEARTBEAT_MS         = 2 * 60 * 1000;   // check every 2 minutes
+const SILENT_REFRESH_TIMEOUT_MS = 30 * 1000;  // if no GIS callback in 30s, unjam
+let _tokenIssuedAt    = 0;
+let _heartbeatTimer   = null;
+let _silentRefreshGuard = null;
 
+// scheduleSilentRefresh() kept as a no-op-compatible shim so existing callers
+// (interactive sign-in, post-refresh) still work. It (re)starts the heartbeat.
 function scheduleSilentRefresh() {
+  startHeartbeat();
+}
+
+function startHeartbeat() {
   stopSilentRefreshTimer();
-  _silentRefreshTimer = setTimeout(requestSilentRefresh, SILENT_REFRESH_MS);
+  _heartbeatTimer = setInterval(heartbeatCheck, HEARTBEAT_MS);
 }
 
 function stopSilentRefreshTimer() {
-  if (_silentRefreshTimer) { clearTimeout(_silentRefreshTimer); _silentRefreshTimer = null; }
+  if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+  if (_silentRefreshGuard) { clearTimeout(_silentRefreshGuard); _silentRefreshGuard = null; }
 }
+
+// Called by the heartbeat interval AND on tab focus/visibility. Decides whether
+// the token is old enough to warrant a refresh, and triggers one if so.
+function heartbeatCheck() {
+  if (!accessToken || !tokenClient) return;
+  if (isSessionExpired()) { forceExpiredLogout('Session expired after 10 hours. Please sign in again to continue making changes.'); return; }
+  if (_isSilentRefresh) return; // a refresh is already in flight
+  const age = Date.now() - _tokenIssuedAt;
+  if (age >= TOKEN_REFRESH_AGE_MS) {
+    requestSilentRefresh();
+  }
+}
+
+const SILENT_REFRESH_MS = 55 * 60 * 1000; // legacy constant (kept for any refs)
+let _silentRefreshTimer = null;            // legacy var (kept for any refs)
+
+// When the laptop wakes from sleep or the user returns to a backgrounded tab,
+// setInterval may have been throttled or paused — so the heartbeat could be
+// "behind". Re-check token age immediately on focus/visibility so we refresh
+// right away rather than waiting up to 2 minutes for the next tick.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') heartbeatCheck();
+});
+window.addEventListener('focus', () => { heartbeatCheck(); });
 
 function forceExpiredLogout(reason) {
   console.info('[session]', reason);
@@ -3067,11 +3125,15 @@ async function fetchSlackMap() {
         CONFIG_WEBHOOK_AIDALINA = value;
         return;
       }
+      if (name === '_webhook_christine') {
+        CONFIG_WEBHOOK_CHRISTINE = value;
+        return;
+      }
       // Regular user row: first-name → Slack user ID
       map[name] = value;
     });
-    const webhookCount = (SLACK_WEBHOOK_URL ? 1 : 0) + (SLACK_REPORT_WEBHOOK_URL ? 1 : 0) + (MENTIONS_WEBHOOK_URL ? 1 : 0) + (CONFIG_WEBHOOK_CARLI ? 1 : 0) + (CONFIG_WEBHOOK_AIDALINA ? 1 : 0);
-    console.info('[slack-map] loaded', Object.keys(map).length, 'user mappings,', webhookCount, 'of 5 webhooks');
+    const webhookCount = (SLACK_WEBHOOK_URL ? 1 : 0) + (SLACK_REPORT_WEBHOOK_URL ? 1 : 0) + (MENTIONS_WEBHOOK_URL ? 1 : 0) + (CONFIG_WEBHOOK_CARLI ? 1 : 0) + (CONFIG_WEBHOOK_AIDALINA ? 1 : 0) + (CONFIG_WEBHOOK_CHRISTINE ? 1 : 0);
+    console.info('[slack-map] loaded', Object.keys(map).length, 'user mappings,', webhookCount, 'of 6 webhooks');
     return map;
   } catch(e) {
     console.warn('[slack-map] fetch failed:', e);
@@ -3558,6 +3620,7 @@ async function sendReportRequest(row) {
 async function sendConfigRequest(personName, row) {
   const webhook = personName === 'Carli' ? CONFIG_WEBHOOK_CARLI
                 : personName === 'Aidalina' ? CONFIG_WEBHOOK_AIDALINA
+                : personName === 'Christine' ? CONFIG_WEBHOOK_CHRISTINE
                 : '';
   if (!webhook) {
     console.warn('[slack] no config webhook configured for', personName);
@@ -3575,7 +3638,9 @@ async function sendConfigRequest(personName, row) {
 
   const lines = [
     '🔧 *Config build needed*',
-    `Hi ${personName} — Christine has flagged this line item for a config build.`,
+    personName === 'Christine'
+      ? `Hi ${personName} — this line item is flagged for a config build.`
+      : `Hi ${personName} — Christine has flagged this line item for a config build.`,
     '',
     `*Advertiser:* ${advertiser}`,
     `*IO Name:* ${ioName}`,
@@ -4831,7 +4896,7 @@ function renderAll() {
         icon: '🔧',
         message: 'A Slack DM goes out immediately to whoever you pick. Picking nobody (Cancel) leaves the checkbox unchanged.',
         row: r,
-        choices: ['Carli', 'Aidalina'],
+        choices: ['Carli', 'Aidalina', 'Christine'],
       });
       if (!pick) return;
 

@@ -52,11 +52,14 @@ export async function POST(req: NextRequest) {
     : payload.date_iso;
 
   try {
-    // Three-step Boostr dance: authenticate, look up IO ID, patch line item
+    // Three-step Boostr dance: authenticate, look up IO ID, update line item.
+    // Boostr officially supports PUT (not PATCH) for this endpoint — per their
+    // API team (May 2026), PATCH happens to work but is unsupported and may
+    // break without notice. Use PUT.
     const jwt = await authenticate(payload.email, payload.password);
     const ioId = await findIoId(jwt, payload.deal_id);
     await boostrRequest(
-      "PATCH",
+      "PUT",
       `/api/ios/${ioId}/line_items/${payload.line_item_id}`,
       jwt,
       { line_item: { custom_fields: { "Delivery Verified": value } } }
