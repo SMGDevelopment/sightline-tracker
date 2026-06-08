@@ -762,6 +762,75 @@
   .tab-dot-cancelled  { background: var(--st-cancelled); }
   .tab-dot-newsletters{ background: #7B6FCE; }
   .tab-dot-changelog  { background: var(--accent); }
+  /* Pacing tab: warm amber (every row is behind — no green, but not full red either) */
+  .tab-dot-pacing     { background: #E08800; }
+
+  /* ═══ PACING TAB ═══════════════════════════════════════════ */
+  /* Severity colors: every row is behind, so the scale runs amber → red */
+  table.pacing-table { font-size: 12px; }
+  table.pacing-table th { white-space: nowrap; }
+
+  /* Signal pill — color matches the row's severity bucket */
+  .pacing-signal {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .sig-mild     { background: #FEF3C7; color: #92400E; }   /* light amber */
+  .sig-warning  { background: #FED7AA; color: #9A3412; }   /* amber */
+  .sig-critical { background: #FECACA; color: #991B1B; }   /* red */
+  .sig-unknown  { background: #E5E7EB; color: #4B5563; }
+
+  /* Numeric cells — right-aligned mono */
+  td.pacing-num, td.pacing-ratio {
+    font-family: var(--font-mono);
+    text-align: right;
+    white-space: nowrap;
+  }
+  /* Actual % — bolder since it's the key comparator */
+  td.pacing-actual { font-weight: 600; }
+  /* Pacing ratio — the headline number; sized up and colored by severity */
+  td.pacing-ratio {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  td.pacing-ratio.sev-mild     { color: #92400E; }
+  td.pacing-ratio.sev-warning  { color: #9A3412; }
+  td.pacing-ratio.sev-critical { color: #991B1B; }
+  td.pacing-ratio.sev-unknown  { color: #6B7280; }
+
+  /* Unit type — small/muted; not a primary signal */
+  td.pacing-unit {
+    color: #6B7280;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Days left in critical range — red + bold */
+  td.pacing-num.days-critical {
+    color: #991B1B;
+    font-weight: 700;
+  }
+
+  /* Reason cell — wider, allows wrapping for readability */
+  td.pacing-reason {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #4B5563;
+  }
+
+  /* Row tinting — subtle amber wash, deepens with severity */
+  tr.pacing-row.severity-mild     td { background: #FFFBEB; }
+  tr.pacing-row.severity-warning  td { background: #FFF7ED; }
+  tr.pacing-row.severity-critical td { background: #FEF2F2; }
+  tr.pacing-row:hover td { filter: brightness(0.97); }
 
   /* ═══ URGENCY PILLS (Upcoming tab only) ═══ */
   .urgency-pill {
@@ -2337,12 +2406,20 @@ const SHEET_MAP = {
   completed:   { name: 'Completed',   range: 'Completed!A2:N' },
   cancelled:   { name: 'Cancelled',   range: 'Cancelled!A2:N' },
   newsletters: { name: 'Newsletters', range: 'Newsletters!A2:N', noWorkflow: true },
+  // Pacing: read-only view. Tab name in the sheet is 'Pacing' (sheetId 1882106504).
+  // 15 columns (A:O): Line item ID | Line item | Order | Type | Signal |
+  //                   Start date | End date | Expected % | Actual % | Pacing ratio |
+  //                   Delivered | Goal units | Unit type | Days left | Reason
+  pacing:      { name: 'Pacing',      range: 'Pacing!A2:O', readonly: true },
 };
 
 const TABS = [
   { id: 'upcoming',    label: 'Upcoming',    dotClass: 'tab-dot-upcoming' },
   { id: 'ready',       label: 'Ready',       dotClass: 'tab-dot-ready' },
   { id: 'delivering',  label: 'Delivering',  dotClass: 'tab-dot-delivering' },
+  // Pacing: read-only report tab. Every row here is behind in pacing — placed
+  // right after Delivering since these line items are still actively running.
+  { id: 'pacing',      label: 'Pacing',      dotClass: 'tab-dot-pacing',      isPacing: true },
   { id: 'paused',      label: 'Paused',      dotClass: 'tab-dot-paused' },
   { id: 'completed',   label: 'Completed',   dotClass: 'tab-dot-completed' },
   { id: 'cancelled',   label: 'Cancelled',   dotClass: 'tab-dot-cancelled' },
@@ -2681,7 +2758,7 @@ let nlStatusHidden = new Set();
 let nlStatusSeeded = false;  // flag so we only auto-hide archived/cancelled once per page load
 let tokenClient = null;
 
-const DATA = { upcoming: [], ready: [], delivering: [], paused: [], completed: [], cancelled: [], changelog: [] };
+const DATA = { upcoming: [], ready: [], delivering: [], paused: [], completed: [], cancelled: [], changelog: [], pacing: [] };
 
 // ════════════════════════════════════════════════════════════
 //  INIT CREDENTIAL STORAGE
@@ -3014,7 +3091,10 @@ async function fetchSheet(tabId) {
     throw new Error(`${resp.status}: ${errText.substring(0,200)}`);
   }
   const json = await resp.json();
-  const parser = tabId === 'newsletters' ? parseNewsletterRow : parseRow;
+  // Each tab has its own parser based on its column schema
+  const parser = tabId === 'newsletters' ? parseNewsletterRow
+              : tabId === 'pacing'       ? parsePacingRow
+              :                            parseRow;
   return (json.values || []).map((row, idx) => parser(row, idx, tabId));
 }
 
@@ -3677,7 +3757,7 @@ async function sendConfigRequest(personName, row) {
 //   Browser → POST localhost:8082/set_delivery_verified
 //             → proxy authenticates with Boostr
 //             → proxy looks up io_id from io_number
-//             → proxy PATCHes line_item with { "Delivery Verified": "YYYY-MM-DD - XX" }
+//             → proxy PUTs line_item with { "Delivery Verified": "YYYY-MM-DD - XX" }
 //
 // All errors fail silently in the UI — the Google Sheet update is what
 // matters, Boostr is a nice-to-have. Errors are logged to the browser console
@@ -3962,6 +4042,33 @@ function parseRow(cols, idx, tabId) {
     _ssOverride:      undefined,
     _gamLinkOverride: undefined,
     _configOverride:  undefined,
+  };
+}
+
+// Pacing tab parser. Distinct shape from the campaign tabs — every row is
+// behind in pacing, with metrics describing how far behind.
+// Sheet columns (A:O, 0-indexed): lineItemId, lineItem, order, type, signal,
+// startDate, endDate, expectedPct, actualPct, pacingRatio, delivered,
+// goalUnits, unitType, daysLeft, reason.
+function parsePacingRow(cols, idx, tabId) {
+  return {
+    _idx: idx,
+    _tab: tabId,
+    lineItemId:   cols[0]  || '',
+    lineItem:     cols[1]  || '',
+    order:        cols[2]  || '',
+    type:         cols[3]  || '',
+    signal:       cols[4]  || '',
+    startDate:    cols[5]  || '',
+    endDate:      cols[6]  || '',
+    expectedPct:  cols[7]  || '',
+    actualPct:    cols[8]  || '',
+    pacingRatio:  cols[9]  || '',
+    delivered:    cols[10] || '',
+    goalUnits:    cols[11] || '',
+    unitType:     cols[12] || '',
+    daysLeft:     cols[13] || '',
+    reason:       cols[14] || '',
   };
 }
 
@@ -4528,6 +4635,151 @@ function renderChangelogTable(rows) {
     </div>`;
 }
 
+// ── PACING TAB ──────────────────────────────────────────────
+// Read-only display of line items that are behind in pacing. Every row here
+// is by definition under-delivering, so visual treatment focuses on showing
+// HOW behind rather than green/red traffic-light logic.
+const PACING_COLUMNS = [
+  { key: 'signal',      label: 'Signal' },
+  { key: 'lineItemId',  label: 'Line Item ID' },
+  { key: 'lineItem',    label: 'Line Item' },
+  { key: 'order',       label: 'Order' },
+  { key: 'type',        label: 'Type' },
+  { key: 'startDate',   label: 'Start' },
+  { key: 'endDate',     label: 'End' },
+  { key: 'expectedPct', label: 'Expected %' },
+  { key: 'actualPct',   label: 'Actual %' },
+  { key: 'pacingRatio', label: 'Pacing' },
+  { key: 'delivered',   label: 'Delivered' },
+  { key: 'goalUnits',   label: 'Goal' },
+  { key: 'unitType',    label: 'Unit Type' },
+  { key: 'daysLeft',    label: 'Days Left' },
+  { key: 'reason',      label: 'Reason' },
+];
+
+// Parse a numeric value that might be "0.85", "85%", "1,234", or "0.85 ". Returns
+// a JS number or NaN.
+function parsePacingNum(raw) {
+  if (raw === '' || raw == null) return NaN;
+  const cleaned = String(raw).replace(/[%,]/g, '').trim();
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? NaN : n;
+}
+
+// Severity bucket for the Pacing Ratio number. Every row is behind, so the
+// scale runs from "barely behind" (mild amber) to "critical" (red).
+//   ≥ 0.85    → mild     (light amber)
+//   0.70-0.85 → warning  (amber)
+//   < 0.70    → critical (red)
+function pacingSeverity(ratio) {
+  if (isNaN(ratio)) return 'unknown';
+  if (ratio >= 0.85) return 'mild';
+  if (ratio >= 0.70) return 'warning';
+  return 'critical';
+}
+
+// Sort pacing rows. Default sort (no sortCol set) is "worst pacing ratio first"
+// so the most urgent rows are at the top — the whole point of the tab.
+function sortPacingRows(rows) {
+  const copy = [...rows];
+  if (!sortCol) {
+    copy.sort((a, b) => parsePacingNum(a.pacingRatio) - parsePacingNum(b.pacingRatio));
+    return copy;
+  }
+  copy.sort((a, b) => {
+    let av = a[sortCol] ?? '';
+    let bv = b[sortCol] ?? '';
+    const numericCols = ['expectedPct','actualPct','pacingRatio','delivered','goalUnits','daysLeft'];
+    if (numericCols.includes(sortCol)) {
+      av = parsePacingNum(av); bv = parsePacingNum(bv);
+      if (isNaN(av)) av = Infinity;
+      if (isNaN(bv)) bv = Infinity;
+    } else if (sortCol === 'startDate' || sortCol === 'endDate') {
+      av = toISODate(av) || '';
+      bv = toISODate(bv) || '';
+    } else {
+      av = String(av).toLowerCase();
+      bv = String(bv).toLowerCase();
+    }
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ? 1 : -1;
+    return 0;
+  });
+  return copy;
+}
+
+// Format a number with thousands separators. Returns the raw input or "—" for
+// blank/NaN. Integers get thousands separators; decimals get 2-decimal display.
+function fmtPacingNum(raw) {
+  const n = parsePacingNum(raw);
+  if (isNaN(n)) return raw || '—';
+  if (Number.isInteger(n)) return n.toLocaleString('en-US');
+  return n.toFixed(2);
+}
+
+// Format a percent input ("0.85", "85", "85%") as a display percent ("85%").
+// We auto-detect whether the input was a decimal share or already a percent.
+function fmtPacingPct(raw) {
+  const n = parsePacingNum(raw);
+  if (isNaN(n)) return raw || '—';
+  const pct = n <= 1.5 ? n * 100 : n;
+  return Math.round(pct) + '%';
+}
+
+function renderPacingTable(rows) {
+  const sorted = sortPacingRows(rows);
+
+  const thHTML = PACING_COLUMNS.map(c => {
+    const active = sortCol === c.key ? 'sorted' : '';
+    const arrow = sortCol === c.key ? (sortAsc ? '↑' : '↓') : '↕';
+    return `<th class="${active}" data-col="${c.key}">${c.label}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join('');
+
+  const rowsHTML = sorted.length === 0
+    ? `<tr><td colspan="${PACING_COLUMNS.length}"><div class="empty-state"><div class="icon">✓</div><p>No line items behind in pacing</p><small>This tab populates from the Pacing sheet</small></div></td></tr>`
+    : sorted.map(r => {
+        const ratioN = parsePacingNum(r.pacingRatio);
+        const severity = pacingSeverity(ratioN);
+        const daysN = parsePacingNum(r.daysLeft);
+        const daysCritical = !isNaN(daysN) && daysN <= 3;
+        return `<tr class="pacing-row severity-${severity}">
+          <td>${r.signal ? `<span class="pacing-signal sig-${severity}">${escHTML(r.signal)}</span>` : '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="id-cell">${escHTML(r.lineItemId) || '—'}</td>
+          <td class="name-cell" title="${escHTML(r.lineItem)}">${escHTML(r.lineItem) || '—'}</td>
+          <td class="name-cell" title="${escHTML(r.order)}">${escHTML(r.order) || '—'}</td>
+          <td>${r.type ? `<span class="type-chip">${escHTML(r.type)}</span>` : '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="date-cell">${r.startDate ? fmtDate(r.startDate) : '—'}</td>
+          <td class="date-cell">${r.endDate ? fmtDate(r.endDate) : '—'}</td>
+          <td class="pacing-num">${fmtPacingPct(r.expectedPct)}</td>
+          <td class="pacing-num pacing-actual">${fmtPacingPct(r.actualPct)}</td>
+          <td class="pacing-ratio sev-${severity}">${fmtPacingNum(r.pacingRatio)}</td>
+          <td class="pacing-num">${fmtPacingNum(r.delivered)}</td>
+          <td class="pacing-num">${fmtPacingNum(r.goalUnits)}</td>
+          <td class="pacing-unit">${escHTML(r.unitType) || '—'}</td>
+          <td class="pacing-num${daysCritical ? ' days-critical' : ''}">${isNaN(daysN) ? (r.daysLeft || '—') : daysN}</td>
+          <td class="pacing-reason" title="${escHTML(r.reason)}">${escHTML(r.reason) || '<span style="color:var(--fog)">—</span>'}</td>
+        </tr>`;
+      }).join('');
+
+  const countText = `${rows.length} ${rows.length === 1 ? 'line item behind' : 'line items behind'}`;
+
+  return `
+    <div class="section-head">
+      <div class="section-title-group">
+        <h2 class="section-title">Pa<em>cing</em></h2>
+        <span class="section-meta">${countText}</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table class="pacing-table">
+          <thead><tr>${thHTML}</tr></thead>
+          <tbody>${rowsHTML}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 // ── NEWSLETTER TAB FILTERS / STATE ────────────────────────────
 // The Newsletter tab now uses the standard renderTable / filterRows code path
 // with NL_COL for column mapping. What remains below is only the multi-select
@@ -4733,10 +4985,12 @@ function renderAll() {
   const rows = DATA[activeTab] || [];
   const tabMeta = TABS.find(t => t.id === activeTab);
   const isLog = !!tabMeta?.isLog;
+  const isPacing = !!tabMeta?.isPacing;
 
   let tableHTML;
-  if (isLog) tableHTML = renderChangelogTable(rows);
-  else tableHTML = renderTable(rows, activeTab);
+  if (isLog)         tableHTML = renderChangelogTable(rows);
+  else if (isPacing) tableHTML = renderPacingTable(rows);
+  else               tableHTML = renderTable(rows, activeTab);
 
   document.getElementById('mainContent').innerHTML =
     `<div class="tab-panel">
@@ -4744,10 +4998,11 @@ function renderAll() {
        ${tableHTML}
      </div>`;
 
-  // Result count — reuse the same count element; on log tabs, filter differently
+  // Result count — reuse the same count element; on log/pacing tabs, no filters apply
   let filtered;
-  if (isLog) filtered = filterLogRows(rows);
-  else filtered = filterRows(rows);
+  if (isLog)         filtered = filterLogRows(rows);
+  else if (isPacing) filtered = rows;   // pacing is read-only, no filtering
+  else               filtered = filterRows(rows);
   document.getElementById('resultCount').textContent =
     filtered.length === rows.length ? `${rows.length} results` : `${filtered.length} / ${rows.length}`;
 
@@ -5099,6 +5354,7 @@ function fillSelect(id, options, allLabel, current) {
 function syncFilterUI() {
   const tabMeta = TABS.find(t => t.id === activeTab);
   const isLog = !!tabMeta?.isLog;
+  const isPacing = !!tabMeta?.isPacing;
   const isNewsletter = activeTab === 'newsletters';
 
   const pairs = [
@@ -5115,11 +5371,18 @@ function syncFilterUI() {
 
   // Salesperson + Type filters don't apply to the Change Log — hide them there.
   // Newsletters has its own "Sales Rep" but no Type — hide Type only.
-  // Advertiser filter is kept because it's shared everywhere.
+  // Pacing hides all filters (the data is a curated report — no filtering makes sense).
+  // Advertiser filter is kept everywhere except Pacing.
+  const advWrap   = document.getElementById('advertiserFilter')?.closest('.filter-wrap');
   const salesWrap = document.getElementById('salespersonFilter')?.closest('.filter-wrap');
   const typeWrap  = document.getElementById('typeFilter')?.closest('.filter-wrap');
-  if (salesWrap) salesWrap.style.display = isLog ? 'none' : '';
-  if (typeWrap)  typeWrap.style.display  = (isLog || isNewsletter) ? 'none' : '';
+  if (advWrap)   advWrap.style.display   = isPacing ? 'none' : '';
+  if (salesWrap) salesWrap.style.display = (isLog || isPacing) ? 'none' : '';
+  if (typeWrap)  typeWrap.style.display  = (isLog || isNewsletter || isPacing) ? 'none' : '';
+
+  // Also hide the search input on Pacing — there's nothing to search
+  const searchWrap = document.getElementById('searchInput')?.closest('.search-wrap, .filter-wrap');
+  if (searchWrap) searchWrap.style.display = isPacing ? 'none' : '';
 
   // Newsletter status filter: only visible on the Newsletters tab
   const nlStatusWrap = document.getElementById('nlStatusFilterWrap');
@@ -5130,7 +5393,7 @@ function syncFilterUI() {
 
   const anyActive = !!(searchQ || advFilter || (!isLog && salesFilter) || (!isLog && !isNewsletter && typeFilter) || (isNewsletter && nlStatusHidden.size > 0));
   const clearAll = document.getElementById('clearAllFilters');
-  if (clearAll) clearAll.style.display = anyActive ? 'inline-flex' : 'none';
+  if (clearAll) clearAll.style.display = (anyActive && !isPacing) ? 'inline-flex' : 'none';
 }
 
 // V2: Contextual insights bar that appears above the table when filters or
