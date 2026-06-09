@@ -804,11 +804,11 @@
   td.pacing-ratio.sev-critical { color: #991B1B; }
   td.pacing-ratio.sev-unknown  { color: #6B7280; }
 
-  /* Unit type — small/muted; not a primary signal */
-  td.pacing-unit {
-    color: #6B7280;
-    font-size: 11px;
-    white-space: nowrap;
+  /* Order column — widened since Signal/Type/Unit Type were removed,
+     and order names are often long (e.g. "2026 ACME Q4 Display ROS Campaign") */
+  td.pacing-order {
+    max-width: 360px;
+    min-width: 220px;
   }
 
   /* Days left in critical range — red + bold */
@@ -4640,11 +4640,11 @@ function renderChangelogTable(rows) {
 // is by definition under-delivering, so visual treatment focuses on showing
 // HOW behind rather than green/red traffic-light logic.
 const PACING_COLUMNS = [
-  { key: 'signal',      label: 'Signal' },
+  // Signal, Type, and Unit Type columns are kept in the parsed row object (so
+  // sort + severity logic still work using row.signal/type) but not displayed.
   { key: 'lineItemId',  label: 'Line Item ID' },
   { key: 'lineItem',    label: 'Line Item' },
   { key: 'order',       label: 'Order' },
-  { key: 'type',        label: 'Type' },
   { key: 'startDate',   label: 'Start' },
   { key: 'endDate',     label: 'End' },
   { key: 'expectedPct', label: 'Expected %' },
@@ -4652,7 +4652,6 @@ const PACING_COLUMNS = [
   { key: 'pacingRatio', label: 'Pacing' },
   { key: 'delivered',   label: 'Delivered' },
   { key: 'goalUnits',   label: 'Goal' },
-  { key: 'unitType',    label: 'Unit Type' },
   { key: 'daysLeft',    label: 'Days Left' },
   { key: 'reason',      label: 'Reason' },
 ];
@@ -4743,11 +4742,9 @@ function renderPacingTable(rows) {
         const daysN = parsePacingNum(r.daysLeft);
         const daysCritical = !isNaN(daysN) && daysN <= 3;
         return `<tr class="pacing-row severity-${severity}">
-          <td>${r.signal ? `<span class="pacing-signal sig-${severity}">${escHTML(r.signal)}</span>` : '<span style="color:var(--fog)">—</span>'}</td>
           <td class="id-cell">${escHTML(r.lineItemId) || '—'}</td>
           <td class="name-cell" title="${escHTML(r.lineItem)}">${escHTML(r.lineItem) || '—'}</td>
-          <td class="name-cell" title="${escHTML(r.order)}">${escHTML(r.order) || '—'}</td>
-          <td>${r.type ? `<span class="type-chip">${escHTML(r.type)}</span>` : '<span style="color:var(--fog)">—</span>'}</td>
+          <td class="name-cell pacing-order" title="${escHTML(r.order)}">${escHTML(r.order) || '—'}</td>
           <td class="date-cell">${r.startDate ? fmtDate(r.startDate) : '—'}</td>
           <td class="date-cell">${r.endDate ? fmtDate(r.endDate) : '—'}</td>
           <td class="pacing-num">${fmtPacingPct(r.expectedPct)}</td>
@@ -4755,7 +4752,6 @@ function renderPacingTable(rows) {
           <td class="pacing-ratio sev-${severity}">${fmtPacingNum(r.pacingRatio)}</td>
           <td class="pacing-num">${fmtPacingNum(r.delivered)}</td>
           <td class="pacing-num">${fmtPacingNum(r.goalUnits)}</td>
-          <td class="pacing-unit">${escHTML(r.unitType) || '—'}</td>
           <td class="pacing-num${daysCritical ? ' days-critical' : ''}">${isNaN(daysN) ? (r.daysLeft || '—') : daysN}</td>
           <td class="pacing-reason" title="${escHTML(r.reason)}">${escHTML(r.reason) || '<span style="color:var(--fog)">—</span>'}</td>
         </tr>`;
